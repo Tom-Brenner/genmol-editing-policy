@@ -13,7 +13,12 @@ from rollout_policy.core_check import (
     propagate_atom_maps_via_match,
 )
 from rollout_policy.eligibility import enumerate_eligible_actions, enumerate_rdkit_pendant_actions
-from rollout_policy.scoring import parent_success, reward, score_candidate
+from rollout_policy.scoring import (
+    max_heavy_atom_delta_allowed,
+    parent_success,
+    reward,
+    score_candidate,
+)
 
 
 # Phenylalanine-like: aromatic core with pendant carboxyl and amino methyl-ish side.
@@ -115,6 +120,7 @@ def test_parent_success_requires_qed_delta():
             "exact_core_ok": True,
             "tanimoto": 0.9,
             "heavy_atom_delta": 0,
+            "parent_n_heavy_atoms": 15,
             "qed_delta_raw": 0.01,
         },
         {
@@ -122,11 +128,54 @@ def test_parent_success_requires_qed_delta():
             "exact_core_ok": True,
             "tanimoto": 0.9,
             "heavy_atom_delta": 0,
+            "parent_n_heavy_atoms": 15,
             "qed_delta_raw": 0.06,
         },
     ]
     assert parent_success(rows) is True
     assert parent_success(rows[:1]) is False
+
+
+def test_max_heavy_atom_delta_is_round_one_third():
+    assert max_heavy_atom_delta_allowed(15) == 5
+    assert max_heavy_atom_delta_allowed(16) == 5
+    assert max_heavy_atom_delta_allowed(17) == 6
+    assert max_heavy_atom_delta_allowed(45) == 15
+
+
+def test_parent_success_respects_fraction_budget():
+    ok = {
+        "valid": True,
+        "exact_core_ok": True,
+        "tanimoto": 0.9,
+        "heavy_atom_delta": 5,
+        "parent_n_heavy_atoms": 15,
+        "qed_delta_raw": 0.06,
+    }
+    too_large = {**ok, "heavy_atom_delta": 6}
+    assert parent_success([ok]) is True
+    assert parent_success([too_large]) is False
+    # Alternate success QED threshold can be recomputed from raw fields.
+    assert parent_success([ok], success_qed_delta=0.10) is False
+
+
+def test_score_candidate_records_budget_fields():
+    parent = Chem.MolFromSmiles(IBUPROFEN)
+    mapped = assign_atom_maps(parent)
+    scored = score_candidate(
+        parent,
+        mapped,
+        IBUPROFEN,
+        constraints={"max_heavy_atom_delta_fraction": 1.0 / 3.0, "min_tanimoto_to_parent": 0.50},
+    )
+    n_heavy = parent.GetNumHeavyAtoms()
+    assert scored["parent_n_heavy_atoms"] == n_heavy
+    assert scored["candidate_n_heavy_atoms"] == n_heavy
+    assert scored["max_heavy_atom_delta_allowed"] == max_heavy_atom_delta_allowed(n_heavy)
+    assert scored["heavy_atom_delta"] == 0
+    assert scored["tanimoto"] == pytest.approx(1.0)
+    assert scored["parent_qed"] is not None
+    assert scored["candidate_qed"] is not None
 
 
 def test_enumerate_pendant_actions_ibuprofen():

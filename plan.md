@@ -25,7 +25,7 @@ feasible(y) =
     RDKit-sanitized(y)
     ∧ exact preservation of the protected core
     ∧ Morgan-Tanimoto(x, y) >= 0.50
-    ∧ abs(heavy_atoms(y) - heavy_atoms(x)) <= 8
+    ∧ abs(heavy_atoms(y) - heavy_atoms(x)) <= round((1/3) * heavy_atoms(x))
 
 r(x, a, y) = feasible(y) × clip((QED(y) - QED(x)) / 0.10, 0, 1)
 ```
@@ -138,7 +138,7 @@ For each parent and policy, success means at least one of its 16 samples is:
 RDKit-sanitized
 ∧ protected core exactly preserved
 ∧ Tanimoto >= 0.50
-∧ absolute heavy-atom change <= 8
+∧ absolute heavy-atom change <= round((1/3) * heavy_atoms(parent))
 ∧ QED(candidate) - QED(parent) >= 0.05
 ```
 

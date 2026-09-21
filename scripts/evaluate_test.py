@@ -163,7 +163,7 @@ def main() -> None:
                 prow,
                 success_qed_delta=success_cfg,
                 min_tanimoto=constraints["min_tanimoto_to_parent"],
-                max_heavy_atom_delta=constraints["max_absolute_heavy_atom_delta"],
+                constraints=constraints,
             )
 
     learned = np.asarray(

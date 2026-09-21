@@ -149,6 +149,10 @@ def make_generation_record(
     wall_seconds: float,
     exception: str | None,
     extra: dict[str, Any] | None = None,
+    feasible: bool | None = None,
+    parent_n_heavy_atoms: int | None = None,
+    candidate_n_heavy_atoms: int | None = None,
+    max_heavy_atom_delta_allowed: int | None = None,
 ) -> dict[str, Any]:
     record = {
         "phase": phase,
@@ -166,8 +170,12 @@ def make_generation_record(
         "output_smiles": output_smiles,
         "valid": bool(valid),
         "exact_core": exact_core,
+        "feasible": feasible,
         "tanimoto": tanimoto,
         "heavy_atom_delta": heavy_atom_delta,
+        "parent_n_heavy_atoms": parent_n_heavy_atoms,
+        "candidate_n_heavy_atoms": candidate_n_heavy_atoms,
+        "max_heavy_atom_delta_allowed": max_heavy_atom_delta_allowed,
         "parent_qed": parent_qed,
         "candidate_qed": candidate_qed,
         "qed_delta_raw": qed_delta_raw,

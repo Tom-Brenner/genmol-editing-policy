@@ -14,7 +14,7 @@ from rollout_policy.core_check import extract_protected_core
 from rollout_policy.eligibility import EligibleAction
 from rollout_policy.genmol_adapter import FrozenGenMol
 from rollout_policy.io import append_jsonl, existing_record_keys, make_generation_record
-from rollout_policy.scoring import score_candidate
+from rollout_policy.scoring import resolve_max_heavy_atom_delta, score_candidate
 
 
 def seed_for(phase: str, parent_id: str, action_id: str, candidate_index: int, base_seed: int) -> int:
@@ -67,6 +67,7 @@ def generate_action_rollouts(
         wall = time.perf_counter() - t0
 
         if completion.error or not completion.output_smiles:
+            parent_n_heavy = int(parent.GetNumHeavyAtoms())
             record = make_generation_record(
                 phase=phase,
                 split=split,
@@ -83,8 +84,14 @@ def generate_action_rollouts(
                 output_smiles=None,
                 valid=False,
                 exact_core=False,
+                feasible=False,
                 tanimoto=None,
                 heavy_atom_delta=None,
+                parent_n_heavy_atoms=parent_n_heavy,
+                candidate_n_heavy_atoms=None,
+                max_heavy_atom_delta_allowed=resolve_max_heavy_atom_delta(
+                    parent_n_heavy, experiment.get("constraints")
+                ),
                 parent_qed=parent_qed,
                 candidate_qed=None,
                 qed_delta_raw=None,
@@ -119,8 +126,12 @@ def generate_action_rollouts(
                 output_smiles=scored.get("output_smiles"),
                 valid=bool(scored["valid"]),
                 exact_core=bool(scored.get("exact_core_ok")),
+                feasible=bool(scored.get("feasible")),
                 tanimoto=scored.get("tanimoto"),
                 heavy_atom_delta=scored.get("heavy_atom_delta"),
+                parent_n_heavy_atoms=scored.get("parent_n_heavy_atoms"),
+                candidate_n_heavy_atoms=scored.get("candidate_n_heavy_atoms"),
+                max_heavy_atom_delta_allowed=scored.get("max_heavy_atom_delta_allowed"),
                 parent_qed=scored["parent_qed"],
                 candidate_qed=scored.get("candidate_qed"),
                 qed_delta_raw=scored.get("qed_delta_raw"),

@@ -173,7 +173,7 @@ def main() -> None:
                 prow,
                 success_qed_delta=cfg["reward"]["success_qed_delta"],
                 min_tanimoto=cfg["constraints"]["min_tanimoto_to_parent"],
-                max_heavy_atom_delta=cfg["constraints"]["max_absolute_heavy_atom_delta"],
+                constraints=cfg["constraints"],
             )
 
     learned = np.asarray([int(outcomes[pid].get("learned", False)) for pid in outcomes])

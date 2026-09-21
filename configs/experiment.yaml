@@ -28,7 +28,8 @@ parent_filters:
 
 constraints:
   min_tanimoto_to_parent: 0.50
-  max_absolute_heavy_atom_delta: 8
+  # abs(heavy_atoms(y) - heavy_atoms(x)) <= round(fraction * heavy_atoms(x))
+  max_heavy_atom_delta_fraction: 0.3333333333333333
   exact_core_required: true
 
 reward:

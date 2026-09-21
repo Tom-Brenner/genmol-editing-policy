@@ -300,12 +300,14 @@ def main() -> None:
                         "tanimoto": r.get("tanimoto"),
                         "heavy_atom_delta": r.get("heavy_atom_delta"),
                         "qed_delta_raw": r.get("qed_delta_raw"),
+                        "parent_n_heavy_atoms": r.get("parent_n_heavy_atoms"),
+                        "max_heavy_atom_delta_allowed": r.get("max_heavy_atom_delta_allowed"),
                     }
                     for r in prow
                 ],
                 success_qed_delta=cfg["reward"]["success_qed_delta"],
                 min_tanimoto=cfg["constraints"]["min_tanimoto_to_parent"],
-                max_heavy_atom_delta=cfg["constraints"]["max_absolute_heavy_atom_delta"],
+                constraints=cfg["constraints"],
             )
         )
 

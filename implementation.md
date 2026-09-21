@@ -44,7 +44,8 @@ fingerprint:
   use_chirality: false
 constraints:
   min_tanimoto_to_parent: 0.50
-  max_absolute_heavy_atom_delta: 8
+  # abs(Δheavy) ≤ round(fraction × heavy_atoms(parent))
+  max_heavy_atom_delta_fraction: 0.3333333333333333
   exact_core_required: true
 reward:
   primary_property: qed
@@ -55,7 +56,7 @@ rollouts:
   test_per_selected_action: 16
 ```
 
-`0.50`, `8`, and `0.10` are pre-registered study choices, not natural chemical constants. The implementation must retain raw similarity, heavy-atom delta, and uncapped QED delta so later descriptive sensitivity analyses are possible. It must not tune these values on test results.
+`0.50`, `1/3`, and `0.10` are pre-registered study choices, not natural chemical constants. The implementation must retain raw similarity, heavy-atom counts/deltas, per-parent heavy-atom budget, and uncapped QED delta so later descriptive sensitivity analyses are possible. It must not tune these values on test results.
 
 ## Directory layout and immutable artifacts
 
@@ -102,7 +103,7 @@ genmol-rollout-policy/
     └── confirmation/
 ```
 
-Each JSONL generation record must include: `phase`, `split`, `parent_id`, input canonical SMILES, parent atom-mapped SMILES, canonical core identifier, action ID, selected SAFE span, candidate index, requested seed, observed seed if GenMol exposes one, output SAFE, output SMILES or null, validity indicator, exact-core indicator, Tanimoto, heavy-atom delta, parent/candidate QED, raw QED delta, capped reward, wall seconds, and exception text or null.
+Each JSONL generation record must include: `phase`, `split`, `parent_id`, input canonical SMILES, parent atom-mapped SMILES, canonical core identifier, action ID, selected SAFE span, candidate index, requested seed, observed seed if GenMol exposes one, output SAFE, output SMILES or null, validity indicator, exact-core indicator, feasibility, Tanimoto, heavy-atom delta, parent/candidate heavy-atom counts, `max_heavy_atom_delta_allowed`, parent/candidate QED, raw QED delta, capped reward, wall seconds, and exception text or null.
 
 Write records atomically: append a complete JSON line and `fsync`, or write a batch temp file then rename it. On resume, validate records and generate only missing `(phase, parent_id, action_id, candidate_index, seed)` keys.
 
@@ -283,13 +284,15 @@ def morgan_fp(mol: Chem.Mol):
 def reward(parent: Chem.Mol, candidate: Chem.Mol, exact_core_ok: bool) -> dict:
     # Candidate must already have passed RDKit sanitization.
     similarity = DataStructs.TanimotoSimilarity(morgan_fp(parent), morgan_fp(candidate))
-    heavy_atom_delta = candidate.GetNumHeavyAtoms() - parent.GetNumHeavyAtoms()
+    parent_n_heavy = parent.GetNumHeavyAtoms()
+    heavy_atom_delta = candidate.GetNumHeavyAtoms() - parent_n_heavy
+    max_delta = round((1.0 / 3.0) * parent_n_heavy)
     parent_qed, candidate_qed = QED.qed(parent), QED.qed(candidate)
     raw_delta = candidate_qed - parent_qed
     feasible = (
         exact_core_ok
         and similarity >= 0.50
-        and abs(heavy_atom_delta) <= 8
+        and abs(heavy_atom_delta) <= max_delta
     )
     value = max(0.0, min(raw_delta / 0.10, 1.0)) if feasible else 0.0
     return {
@@ -404,7 +407,7 @@ python scripts/evaluate_test.py --config configs/experiment.yaml --rollouts 16
 chmod -R a-w results/test
 ```
 
-Calculate the primary parent-level success outcome before inspecting molecule examples. Use a paired bootstrap over 75 parents for learned minus largest-fragment success. Candidate success requires sanitization, exact core preservation, Tanimoto ≥0.50, absolute heavy-atom change ≤8, and QED delta ≥0.05.
+Calculate the primary parent-level success outcome before inspecting molecule examples. Use a paired bootstrap over 75 parents for learned minus largest-fragment success. Candidate success requires sanitization, exact core preservation, Tanimoto ≥0.50, absolute heavy-atom change ≤ round((1/3) × parent heavy atoms), and QED delta ≥0.05.
 
 ### Phase 4: seed-sensitivity confirmation
 
