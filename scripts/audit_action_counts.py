@@ -36,7 +36,14 @@ from rollout_policy.io import (
     write_json,
     write_jsonl_atomic,
 )
-from rollout_policy.scan_limit import should_stop_scan, split_eligible_limit
+from rollout_policy.scan_limit import (
+    DEFAULT_ROW_CAP,
+    install_ctrl_c_kill,
+    interrupt_requested,
+    row_cap_reached,
+    should_stop_scan,
+    split_eligible_limit,
+)
 
 
 def _quantile(sorted_values: list[int], q: float) -> int | None:
@@ -159,7 +166,12 @@ def _write_audit(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="configs/experiment_v2.yaml")
-    parser.add_argument("--max-scan", type=int, default=None)
+    parser.add_argument(
+        "--max-scan",
+        type=int,
+        default=DEFAULT_ROW_CAP,
+        help="Stop after this many chemreps rows (default 120000).",
+    )
     parser.add_argument(
         "--eligible-limit",
         type=int,
@@ -185,6 +197,7 @@ def main() -> None:
         if args.eligible_limit is not None
         else split_eligible_limit(cfg)
     )
+    install_ctrl_c_kill()
     counts: Counter[str] = Counter()
     reason_counts: Counter[str] = Counter()
     verified_hist: Counter[int] = Counter()
@@ -194,10 +207,13 @@ def main() -> None:
     stop_reason = "end_of_file"
     try:
         for chembl_id, source_smiles in iter_chembl_smiles(raw_path):
-            scanned += 1
-            if args.max_scan is not None and scanned > args.max_scan:
+            if interrupt_requested():
+                stop_reason = "interrupted"
+                break
+            if row_cap_reached(scanned, args.max_scan):
                 stop_reason = "max_scan"
                 break
+            scanned += 1
             parent = standardize_parent(
                 chembl_id,
                 source_smiles,
@@ -216,6 +232,9 @@ def main() -> None:
             diag = enumerate_aligned_actions(
                 mol, require_safe_alignment=not args.offline_no_safe
             )
+            if interrupt_requested():
+                stop_reason = "interrupted"
+                break
             counts[f"n_rdkit:{diag.n_rdkit}"] += 1
             counts[f"n_aligned:{diag.n_safe_aligned}"] += 1
             counts[f"n_verified:{diag.n_verified}"] += 1

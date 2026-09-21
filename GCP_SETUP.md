@@ -324,7 +324,9 @@ V2 label generation waits on this pytest plus the action-count audit. The audit 
 
 ```bash
 python scripts/audit_action_counts.py --config configs/experiment_v2.yaml
-# stops after 40,000 eligible parents and writes:
+# Ctrl+C stops the current script (audit or prepare_manifest).
+# Either script also stops after 120000 chemreps rows.
+# audit stops after 40,000 eligible parents and writes:
 #   artifacts_v2/eligible_parents.jsonl
 #   artifacts_v2/action_count_audit.json
 # freeze min/max actions and target_eligible_pool from that file before:

@@ -23,6 +23,12 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from rollout_policy.chembl import iter_chembl_smiles, standardize_parent
 from rollout_policy.eligibility import enumerate_eligible_actions
+from rollout_policy.scan_limit import (
+    DEFAULT_ROW_CAP,
+    install_ctrl_c_kill,
+    interrupt_requested,
+    row_cap_reached,
+)
 from rollout_policy.io import (
     artifact_path,
     ensure_dir,
@@ -136,7 +142,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/experiment.yaml")
     parser.add_argument("--seed", type=int, default=None)
-    parser.add_argument("--max-scan", type=int, default=None, help="Optional cap on chemreps rows scanned")
+    parser.add_argument(
+        "--max-scan",
+        type=int,
+        default=DEFAULT_ROW_CAP,
+        help="Stop after this many chemreps rows (default 120000). Ctrl+C also stops.",
+    )
     parser.add_argument(
         "--offline-no-safe",
         action="store_true",
@@ -156,21 +167,42 @@ def main() -> None:
     target_pool = int(manifest_cfg.get("target_eligible_pool", need * 4))
     if target_pool < need:
         raise ValueError("target_eligible_pool must be >= requested split total")
+    install_ctrl_c_kill()
     eligible: list[dict] = []
     scanned = 0
-    for chembl_id, smiles in iter_chembl_smiles(raw_path):
-        scanned += 1
-        if args.max_scan is not None and scanned > args.max_scan:
-            break
-        rec = try_build_parent(
-            chembl_id, smiles, cfg, require_safe_alignment=require_safe
-        )
-        if rec is not None:
-            eligible.append(rec)
-            if len(eligible) >= target_pool:
+    interrupted = False
+    try:
+        for chembl_id, smiles in iter_chembl_smiles(raw_path):
+            if interrupt_requested():
+                interrupted = True
                 break
-        if scanned % 5000 == 0:
-            print(f"scanned={scanned} eligible={len(eligible)}")
+            if row_cap_reached(scanned, args.max_scan):
+                print(f"row cap {args.max_scan} reached", flush=True)
+                break
+            scanned += 1
+            rec = try_build_parent(
+                chembl_id, smiles, cfg, require_safe_alignment=require_safe
+            )
+            if interrupt_requested():
+                interrupted = True
+                break
+            if rec is not None:
+                eligible.append(rec)
+                if len(eligible) >= target_pool:
+                    break
+            if scanned % 5000 == 0:
+                print(f"scanned={scanned} eligible={len(eligible)}", flush=True)
+    except KeyboardInterrupt:
+        interrupted = True
+        print(
+            f"Interrupted after scanned={scanned} eligible={len(eligible)}.",
+            flush=True,
+        )
+
+    if interrupted and len(eligible) < need:
+        raise SystemExit(
+            f"Interrupted with {len(eligible)} eligible parents after scanning {scanned}; need {need}"
+        )
 
     if len(eligible) < need:
         raise SystemExit(
