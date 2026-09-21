@@ -116,6 +116,35 @@ class MockFrozenGenMol:
         input_ids=None,
         cut_bonds=None,
     ) -> Completion:
+        return self.complete_spans(
+            smiles, safe_fragment_index, [seed], input_ids=input_ids, cut_bonds=cut_bonds
+        )[0]
+
+    def complete_spans(
+        self,
+        smiles: str,
+        safe_fragment_index: int,
+        seeds,
+        *,
+        input_ids=None,
+        cut_bonds=None,
+    ) -> list[Completion]:
+        return [
+            self._complete_one(
+                smiles, safe_fragment_index, int(seed), input_ids=input_ids, cut_bonds=cut_bonds
+            )
+            for seed in seeds
+        ]
+
+    def _complete_one(
+        self,
+        smiles: str,
+        safe_fragment_index: int,
+        seed: int,
+        *,
+        input_ids=None,
+        cut_bonds=None,
+    ) -> Completion:
         set_global_seeds(seed)
         rng = random.Random(seed)
         if rng.random() < self.fail_rate:

@@ -19,6 +19,7 @@ sampling:
   num_insert_mask: 10
   min_add_len: 18
 
-# Seeds are applied via random/numpy/torch before each completion.
-# Whether GenMol honors them is verified in Phase 0 and recorded in provenance.
-seed_policy: set_global_prngs
+# Seeds: each completion has its own recorded seed and torch.Generator.
+# Same parent+action rollouts are stacked into one diffusion batch; do not
+# set_global_seeds once for the whole batch (that couples samples).
+seed_policy: per_completion_torch_generator

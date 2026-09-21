@@ -81,3 +81,17 @@ unless it is the mapped match. Mapping failure → infeasible.
 **Decision:** `python scripts/dry_run_local.py --bf16 false` remains the
 mock/CPU path. Real local GPU smoke test is
 `python scripts/test_one_molecule.py --bf16 true` with checkpoint + SAFE.
+
+### 2026-09-21 — Batched rollouts, independent per-completion seeds
+
+**Decision:** For a given parent+action, missing rollouts are stacked into one
+GenMol diffusion batch. Each JSONL row still records its own
+`requested_seed` / `observed_seed` from `seed_for(...)`. Sampling noise comes
+from a `torch.Generator` created by `generator_for_seed(seed, device)` — not
+from a single `set_global_seeds` call covering the batch. `wall_seconds` is
+batch-wall / N (effective seconds per completion). MCG (`gamma != 0`) stays
+sequential because stock `Sampler.generate` indexes row 0.
+
+**Why:** Phase 0 mean wall was 0.137 s/sample at batch size 1; L4 is idle on
+short remasks. Independent generators keep the pre-registered seed schedule
+without coupling Gumbel draws across candidates.
