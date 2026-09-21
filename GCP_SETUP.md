@@ -270,11 +270,13 @@ git status          # discard any leftover scp/local edits before pulling
 git pull
 ```
 
-If the VM working tree still has copies from an earlier scp:
+If `git pull` refuses because of leftover local copies (e.g. from an earlier scp), discard **tracked** edits and **untracked** files separately — `git restore` cannot touch untracked paths:
 
 ```bash
-git restore scripts/download_chembl_molecule.py src/rollout_policy/chembl.py tests/test_chembl_lookup.py
+git restore scripts/download_chembl_molecule.py src/rollout_policy/chembl.py
+rm -f tests/test_chembl_lookup.py
 git pull
+git log -1 --oneline   # expect the laptop tip, not 94bb6c0
 ```
 
 ---
