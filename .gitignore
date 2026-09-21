@@ -6,6 +6,7 @@ data/processed/**
 
 # Keep small fixtures; ignore downloaded ChEMBL molecule dumps if large
 data/fixtures/*.json
+!data/fixtures/CHEMBL521.tsv
 !data/fixtures/dry_run_parents.tsv
 !data/fixtures/.gitkeep
 

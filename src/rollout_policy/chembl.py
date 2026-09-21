@@ -93,6 +93,15 @@ def iter_chembl_smiles(path: str | Path) -> Iterator[tuple[str, str]]:
                 yield chembl_id, smiles
 
 
+def lookup_chembl_smiles(chembl_id: str, path: str | Path) -> str | None:
+    """Return canonical SMILES for one ChEMBL ID from a chemreps dump, or None."""
+    needle = chembl_id.strip()
+    for cid, smiles in iter_chembl_smiles(path):
+        if cid == needle:
+            return smiles
+    return None
+
+
 def _strip_atom_maps(mol: Chem.Mol) -> Chem.Mol:
     mol = Chem.Mol(mol)
     for atom in mol.GetAtoms():

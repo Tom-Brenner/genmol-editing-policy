@@ -62,6 +62,7 @@ conda activate genmol-rollout
 # sudo apt-get update && sudo apt-get install -y libsm6 libxext6 libxrender-dev
 
 python -m pip install --upgrade pip
+python -m pip install 'setuptools>=65,<82'  # pkg_resources; setuptools 82+ dropped it
 python -m pip install -r vendor/genmol/env/requirements.txt
 python -m pip install -e vendor/genmol
 python -m pip install -e ".[dev]"
@@ -84,7 +85,11 @@ python scripts/download_genmol_ckpt.py
 python scripts/download_chembl.py
 # Writes data/raw/chembl_37_chemreps.txt.gz
 
-# Optional spot-check molecule (not a bulk substitute):
+# Optional: refresh a spot-check molecule (not a bulk substitute).
+# Production ChEMBL REST often 500s; the script falls back to staging, then
+# the committed fixture / chemreps dump. Smoke tests do not need this —
+# data/fixtures/CHEMBL521.tsv is in git. Fully offline:
+# python scripts/download_chembl_molecule.py --chembl-id CHEMBL521 --offline
 python scripts/download_chembl_molecule.py --chembl-id CHEMBL521
 ```
 

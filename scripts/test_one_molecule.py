@@ -4,7 +4,7 @@
 Requires:
   - vendor/genmol installed editable with safe-mol
   - vendor/genmol/checkpoints/model.ckpt
-  - a parent TSV (default: downloaded CHEMBL521 / ibuprofen)
+  - a parent TSV (default: committed data/fixtures/CHEMBL521.tsv)
 
 Usage:
   python scripts/test_one_molecule.py --bf16 true
@@ -45,7 +45,7 @@ def main() -> None:
     parser.add_argument(
         "--parent-tsv",
         default="data/fixtures/CHEMBL521.tsv",
-        help="parent_id\\tsmiles TSV from download_chembl_molecule.py",
+        help="parent_id\\tsmiles TSV (committed CHEMBL521 fixture by default)",
     )
     parser.add_argument("--bf16", default="true")
     parser.add_argument("--seed", type=int, default=20260921)
@@ -59,8 +59,9 @@ def main() -> None:
     parent_path = resolve_path(args.parent_tsv)
     if not parent_path.exists():
         raise SystemExit(
-            f"Missing {parent_path}. Run:\n"
-            "  python scripts/download_chembl_molecule.py --chembl-id CHEMBL521"
+            f"Missing {parent_path}. The ibuprofen fixture is committed as "
+            "data/fixtures/CHEMBL521.tsv (git pull). For another ID:\n"
+            "  python scripts/download_chembl_molecule.py --chembl-id <ID> [--offline]"
         )
 
     parent_id, source_smiles = load_parent_tsv(parent_path)

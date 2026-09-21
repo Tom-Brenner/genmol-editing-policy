@@ -8,12 +8,16 @@ Repo: `git@github.com:Tom-Brenner/genmol-editing-policy.git`
 
 Budget (from `plan.md`): ~$200 ceiling · alerts at $150 / $175 · stop GPU before ~$185 accrued · ~180 GPU-hour soft cap. Confirm **regional** L4 on-demand price before create; dollar cap wins.
 
-Large files are **not** rsynced from the laptop. Download on the VM:
+Code and configs ship via **git** (commit on the laptop, `git push`, `git pull` on the VM). Do **not** scp experiment code onto the VM.
+
+Large files are **not** in git and are **not** rsynced from the laptop. Download on the VM:
 
 | Artifact | Size | Obtained on VM via |
 | --- | --- | --- |
+| Experiment code / configs | — | `git clone` then `git pull` (see §6a) |
+| Ibuprofen smoke fixture | 1 line | committed: `data/fixtures/CHEMBL521.tsv` |
 | GenMol V1 `model.ckpt` | ~1.4 GB | `python scripts/download_genmol_ckpt.py` |
-| ChEMBL 37 chemreps | ~279 MB gz | `python scripts/download_chembl.py` |
+| ChEMBL 37 chemreps | ~279 MB gz | `python scripts/download_chembl.py` (FTP; independent of ChEMBL REST) |
 
 Configs: `configs/experiment.yaml`, `configs/genmol_sampling.yaml` (`bf16: true` → L4 uses bf16).
 
@@ -179,11 +183,10 @@ sudo apt-get install -y git curl wget build-essential \
   libsm6 libxext6 libxrender-dev
 
 # Micromamba or Miniconda if absent, then:
-curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
-./bin/micromamba shell init -s bash -r ~/micromamba
-# re-login or: eval "$(./bin/micromamba shell hook -s bash)"
-micromamba create -y -n genmol-rollout python=3.10
-micromamba activate genmol-rollout
+# if `conda` is not on PATH in this SSH session:
+#source /opt/conda/etc/profile.d/conda.sh
+conda create -y -n genmol-rollout python=3.10
+conda activate genmol-rollout
 
 # GitHub deploy key (private repo)
 ssh-keygen -t ed25519 -C "gcp-vm-genmol" -f ~/.ssh/id_ed25519 -N ""
@@ -195,6 +198,8 @@ git clone git@github.com:Tom-Brenner/genmol-editing-policy.git ~/genmol-editing-
 cd ~/genmol-editing-policy
 
 python -m pip install --upgrade pip
+# safe/wandb still import pkg_resources; setuptools 82+ removed it
+python -m pip install 'setuptools>=65,<82'
 python -m pip install -r vendor/genmol/env/requirements.txt
 # Prefer a CUDA wheel matching the image (cu124/cu128/cu129); if pip pulls CPU torch, reinstall:
 # python -m pip install 'torch==2.6.0' --index-url https://download.pytorch.org/whl/cu124
@@ -214,6 +219,10 @@ python -c "from rollout_policy.precision import resolve_precision; print(resolve
 
 Accept the [NVIDIA Open Model License](https://huggingface.co/nvidia/NV-GenMol-89M-v1) on Hugging Face first (browser / token if gated).
 
+The one-molecule smoke test does **not** call ChEMBL REST. Ibuprofen is committed at `data/fixtures/CHEMBL521.tsv`. Bulk parents come from the chemreps **FTP** dump (`download_chembl.py`), which is unrelated to the molecule REST API.
+
+Production ChEMBL REST (`https://www.ebi.ac.uk/chembl/api/data/...`) often returns HTTP 500 / timeouts. If you still want to refresh a fixture, `download_chembl_molecule.py` tries production, then staging (`wwwdev`), then the committed TSV, then the local chemreps dump. `--offline` skips REST.
+
 ```bash
 cd ~/genmol-editing-policy
 mkdir -p vendor/genmol/checkpoints data/raw artifacts
@@ -221,9 +230,11 @@ mkdir -p vendor/genmol/checkpoints data/raw artifacts
 python scripts/download_genmol_ckpt.py
 python scripts/download_chembl.py
 
-# Smoke test
-python scripts/download_chembl_molecule.py --chembl-id CHEMBL521
-python scripts/test_one_molecule.py --bf16 true
+# Smoke test (uses git fixture; no REST)
+python scripts/test_one_molecule.py --bf16 true --parent-tsv data/fixtures/CHEMBL521.tsv
+
+# Optional: refresh fixture without REST
+# python scripts/download_chembl_molecule.py --chembl-id CHEMBL521 --offline
 
 # Fill provenance
 cp artifacts/provenance.template.json artifacts/provenance.json
@@ -241,13 +252,40 @@ gcloud storage cp \
 
 ---
 
+## 6a — Updating code (laptop git → VM pull)
+
+Edit, commit, and push from the **laptop**. On the VM only `git pull`. The deploy key is read-only.
+
+```bash
+# laptop
+cd ~/genmol-editing-policy
+git add -A
+git commit -m "..."
+git push
+
+# VM
+cd ~/genmol-editing-policy
+conda activate genmol-rollout
+git status          # discard any leftover scp/local edits before pulling
+git pull
+```
+
+If the VM working tree still has copies from an earlier scp:
+
+```bash
+git restore scripts/download_chembl_molecule.py src/rollout_policy/chembl.py tests/test_chembl_lookup.py
+git pull
+```
+
+---
+
 ## 7 — Experiment phases with tmux (on VM)
 
 Always `stop` the VM when idle. Run long jobs in tmux.
 
 ```bash
 tmux new -s genmol
-micromamba activate genmol-rollout   # or conda activate
+conda activate genmol-rollout   # or: micromamba activate genmol-rollout
 cd ~/genmol-editing-policy
 ```
 
