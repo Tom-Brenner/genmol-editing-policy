@@ -131,6 +131,7 @@ def test_cpu_inference_does_not_require_cuda():
     model.eval()
     with torch.no_grad():
         logits = model(graphs[0])
-    assert logits.shape == ()
+    # One parent/action graph is a batch of size 1, same layout as a DataLoader batch.
+    assert logits.shape == (1,)
     assert torch.isfinite(logits)
     assert logits.device.type == "cpu"
