@@ -5,8 +5,10 @@ Run on the machine that already holds chembl_37_chemreps.txt.gz. This does not
 download the file. ``--offline-no-safe`` is for development only; the decision
 record must use real SAFE alignment.
 
-The 40,000-parent V2 split is assumed available. This script checks whether a
-proposed cap still leaves enough core-disjoint parents to pack 30,000/5,000/5,000.
+The scan stops after train+validation+test eligible parents (40,000 for V2).
+It writes those parents as soon as it stops. A Ctrl-C of a run that was started
+before this stop rule does not save anything: the old process holds the list
+only in memory.
 """
 
 from __future__ import annotations
@@ -32,7 +34,9 @@ from rollout_policy.io import (
     load_experiment_config,
     resolve_path,
     write_json,
+    write_jsonl_atomic,
 )
+from rollout_policy.scan_limit import should_stop_scan, split_eligible_limit
 
 
 def _quantile(sorted_values: list[int], q: float) -> int | None:
@@ -96,10 +100,73 @@ def _summarize_cap(rows: list[dict], cap: int | None, cfg: dict) -> dict:
     }
 
 
+def _write_audit(
+    cfg: dict,
+    raw_path: Path,
+    *,
+    rows: list[dict],
+    scanned: int,
+    stop_reason: str,
+    eligible_limit: int,
+    max_scan: int | None,
+    offline_no_safe: bool,
+    counts: Counter[str],
+    reason_counts: Counter[str],
+    verified_hist: Counter[int],
+    examples: dict[str, list[str]],
+) -> None:
+    parents_path = artifact_path(cfg, "eligible_parents.jsonl")
+    write_jsonl_atomic(parents_path, rows)
+    n = max(len(rows), 1)
+    report = {
+        "eligible_limit": eligible_limit,
+        "stop_reason": stop_reason,
+        "parents_path": str(parents_path),
+        "source_sha256": file_sha(raw_path),
+        "offline_no_safe": offline_no_safe,
+        "scanned": scanned,
+        "scan_capped": max_scan is not None or stop_reason == "eligible_limit",
+        "n_verified_ge_2": len(rows),
+        "verified_histogram": {str(k): verified_hist[k] for k in sorted(verified_hist)},
+        "fraction_lt_4": sum(1 for row in rows if row["n_verified"] < 4) / n,
+        "fraction_eq_4": sum(1 for row in rows if row["n_verified"] == 4) / n,
+        "fraction_gt_4": sum(1 for row in rows if row["n_verified"] > 4) / n,
+        "reason_counts": dict(reason_counts),
+        "example_ids": examples,
+        "stage_counts": dict(counts),
+        "caps": [_summarize_cap(rows, cap, cfg) for cap in (4, 6, 8, None)],
+        "versions": {
+            "python": platform.python_version(),
+            "rdkit": rdBase.rdkitVersion,
+        },
+    }
+    out = artifact_path(cfg, "action_count_audit.json")
+    write_json(out, report)
+    print(
+        json.dumps(
+            {
+                "wrote": str(out),
+                "parents": str(parents_path),
+                "scanned": scanned,
+                "n_verified_ge_2": len(rows),
+                "stop_reason": stop_reason,
+            },
+            indent=2,
+        )
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="configs/experiment_v2.yaml")
     parser.add_argument("--max-scan", type=int, default=None)
+    parser.add_argument(
+        "--eligible-limit",
+        type=int,
+        default=None,
+        help="Stop after this many parents with at least min_eligible_actions. "
+        "Default is n_train + n_validation + n_test (40000 for V2).",
+    )
     parser.add_argument(
         "--offline-no-safe",
         action="store_true",
@@ -112,87 +179,92 @@ def main() -> None:
         raise SystemExit(f"Missing {raw_path}. Use the chemreps file already on this machine.")
 
     filters = cfg["parent_filters"]
+    min_actions = int(filters["min_eligible_actions"])
+    eligible_limit = (
+        int(args.eligible_limit)
+        if args.eligible_limit is not None
+        else split_eligible_limit(cfg)
+    )
     counts: Counter[str] = Counter()
     reason_counts: Counter[str] = Counter()
     verified_hist: Counter[int] = Counter()
     examples: dict[str, list[str]] = {}
     rows: list[dict] = []
     scanned = 0
-    for chembl_id, source_smiles in iter_chembl_smiles(raw_path):
-        scanned += 1
-        if args.max_scan is not None and scanned > args.max_scan:
-            break
-        parent = standardize_parent(
-            chembl_id,
-            source_smiles,
-            min_heavy_atoms=filters["min_heavy_atoms"],
-            max_heavy_atoms=filters["max_heavy_atoms"],
-            min_qed=filters["min_qed"],
-            max_qed=filters["max_qed"],
-        )
-        if parent is None:
-            counts["standardization_rejected"] += 1
-            continue
-        mol = Chem.MolFromSmiles(parent.smiles)
-        if mol is None:
-            counts["standardization_rejected"] += 1
-            continue
-        diag = enumerate_aligned_actions(
-            mol, require_safe_alignment=not args.offline_no_safe
-        )
-        counts[f"n_rdkit:{diag.n_rdkit}"] += 1
-        counts[f"n_aligned:{diag.n_safe_aligned}"] += 1
-        counts[f"n_verified:{diag.n_verified}"] += 1
-        verified_hist[diag.n_verified] += 1
-        for reason in diag.rejection_reasons:
-            reason_counts[reason] += 1
-            bucket = examples.setdefault(reason, [])
-            if len(bucket) < 5:
-                bucket.append(chembl_id)
-        if diag.n_verified >= 2:
-            rows.append(
-                {
-                    "parent_id": chembl_id,
-                    "core_id": parent.core_smiles,
-                    "n_verified": diag.n_verified,
-                    "heavy_atoms": parent.heavy_atoms,
-                    "qed": parent.qed,
-                }
+    stop_reason = "end_of_file"
+    try:
+        for chembl_id, source_smiles in iter_chembl_smiles(raw_path):
+            scanned += 1
+            if args.max_scan is not None and scanned > args.max_scan:
+                stop_reason = "max_scan"
+                break
+            parent = standardize_parent(
+                chembl_id,
+                source_smiles,
+                min_heavy_atoms=filters["min_heavy_atoms"],
+                max_heavy_atoms=filters["max_heavy_atoms"],
+                min_qed=filters["min_qed"],
+                max_qed=filters["max_qed"],
             )
-        if scanned % 5000 == 0:
-            print(
-                f"scanned={scanned} standardized_kept={len(rows)} "
-                f"verified_ge_2={len(rows)}",
-                flush=True,
+            if parent is None:
+                counts["standardization_rejected"] += 1
+                continue
+            mol = Chem.MolFromSmiles(parent.smiles)
+            if mol is None:
+                counts["standardization_rejected"] += 1
+                continue
+            diag = enumerate_aligned_actions(
+                mol, require_safe_alignment=not args.offline_no_safe
             )
+            counts[f"n_rdkit:{diag.n_rdkit}"] += 1
+            counts[f"n_aligned:{diag.n_safe_aligned}"] += 1
+            counts[f"n_verified:{diag.n_verified}"] += 1
+            verified_hist[diag.n_verified] += 1
+            for reason in diag.rejection_reasons:
+                reason_counts[reason] += 1
+                bucket = examples.setdefault(reason, [])
+                if len(bucket) < 5:
+                    bucket.append(chembl_id)
+            if diag.n_verified >= min_actions:
+                rows.append(
+                    {
+                        "parent_id": chembl_id,
+                        "core_id": parent.core_smiles,
+                        "n_verified": diag.n_verified,
+                        "heavy_atoms": parent.heavy_atoms,
+                        "qed": parent.qed,
+                    }
+                )
+                if should_stop_scan(len(rows), eligible_limit):
+                    stop_reason = "eligible_limit"
+                    break
+            if scanned % 5000 == 0:
+                print(
+                    f"scanned={scanned} verified_ge_{min_actions}={len(rows)} "
+                    f"stop_at={eligible_limit}",
+                    flush=True,
+                )
+    except KeyboardInterrupt:
+        stop_reason = "interrupted"
+        print(
+            f"Interrupted after scanned={scanned} eligible={len(rows)}. Writing what was kept.",
+            flush=True,
+        )
 
-    at_least_two = [row for row in rows if row["n_verified"] >= 2]
-    n = max(len(at_least_two), 1)
-    report = {
-        "assumption": "40000 eligible parents are assumed available for the V2 split",
-        "source_sha256": file_sha(raw_path),
-        "offline_no_safe": bool(args.offline_no_safe),
-        "scanned": scanned,
-        "scan_capped": args.max_scan is not None,
-        "n_verified_ge_2": len(at_least_two),
-        "verified_histogram": {str(k): verified_hist[k] for k in sorted(verified_hist)},
-        "fraction_lt_4": sum(1 for row in at_least_two if row["n_verified"] < 4) / n,
-        "fraction_eq_4": sum(1 for row in at_least_two if row["n_verified"] == 4) / n,
-        "fraction_gt_4": sum(1 for row in at_least_two if row["n_verified"] > 4) / n,
-        "reason_counts": dict(reason_counts),
-        "example_ids": examples,
-        "stage_counts": dict(counts),
-        "caps": [
-            _summarize_cap(at_least_two, cap, cfg) for cap in (4, 6, 8, None)
-        ],
-        "versions": {
-            "python": platform.python_version(),
-            "rdkit": rdBase.rdkitVersion,
-        },
-    }
-    out = artifact_path(cfg, "action_count_audit.json")
-    write_json(out, report)
-    print(json.dumps({k: report[k] for k in ("scanned", "n_verified_ge_2", "caps")}, indent=2))
+    _write_audit(
+        cfg,
+        raw_path,
+        rows=rows,
+        scanned=scanned,
+        stop_reason=stop_reason,
+        eligible_limit=eligible_limit,
+        max_scan=args.max_scan,
+        offline_no_safe=bool(args.offline_no_safe),
+        counts=counts,
+        reason_counts=reason_counts,
+        verified_hist=verified_hist,
+        examples=examples,
+    )
 
 
 if __name__ == "__main__":

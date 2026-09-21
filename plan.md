@@ -246,7 +246,7 @@ If none do, use 8 and report the truncation rate.
 
 Broadening eligibility to internal side chains, ring edits, or multi-bond cuts is a different method. It is out of scope.
 
-`scripts/audit_action_counts.py --config configs/experiment_v2.yaml` writes `artifacts_v2/action_count_audit.json`. Run it with real SAFE alignment. `--offline-no-safe` is not a basis for the cap. The script does not download chemreps; it reads the file already on that machine.
+`scripts/audit_action_counts.py --config configs/experiment_v2.yaml` stops after 40,000 parents with at least `min_eligible_actions` verified pendants. It writes those parents to `artifacts_v2/eligible_parents.jsonl` and the cap summary to `artifacts_v2/action_count_audit.json`. Run it with real SAFE alignment. `--offline-no-safe` is not a basis for the cap. The script does not download chemreps; it reads the file already on that machine.
 
 ## Features
 

@@ -324,13 +324,15 @@ V2 label generation waits on this pytest plus the action-count audit. The audit 
 
 ```bash
 python scripts/audit_action_counts.py --config configs/experiment_v2.yaml
-# writes artifacts_v2/action_count_audit.json
+# stops after 40,000 eligible parents and writes:
+#   artifacts_v2/eligible_parents.jsonl
+#   artifacts_v2/action_count_audit.json
 # freeze min/max actions and target_eligible_pool from that file before:
 python scripts/prepare_manifest.py --config configs/experiment_v2.yaml
 chmod a-w manifests_v2/test.jsonl
 ```
 
-The audit assumes 40,000 eligible parents exist and checks whether they pack into core-disjoint 30,000 / 5,000 / 5,000. V2 writes `manifests_v2/`, `artifacts_v2/`, `results_v2/`, and `data/processed/parents_v2.parquet` only. Leave `manifests/`, `artifacts/`, and `results/test` untouched.
+The audit stops at 40,000 parents with at least two verified pendants and checks whether that set packs into core-disjoint 30,000 / 5,000 / 5,000. V2 writes `manifests_v2/`, `artifacts_v2/`, `results_v2/`, and `data/processed/parents_v2.parquet` only. Leave `manifests/`, `artifacts/`, and `results/test` untouched.
 
 ---
 
