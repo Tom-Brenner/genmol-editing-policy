@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Build the core-disjoint 1000/200/200 ChEMBL manifest."""
+"""Build a core-disjoint ChEMBL manifest.
+
+Split sizes come from the experiment config. The locked protocol is
+1000/200/200. Experiment V2 requests 30000/5000/5000.
+"""
 
 from __future__ import annotations
 
@@ -20,6 +24,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from rollout_policy.chembl import iter_chembl_smiles, standardize_parent
 from rollout_policy.eligibility import enumerate_eligible_actions
 from rollout_policy.io import (
+    artifact_path,
     ensure_dir,
     load_experiment_config,
     resolve_path,
@@ -147,7 +152,10 @@ def main() -> None:
         raise SystemExit(f"Missing {raw_path}; run scripts/download_chembl.py first")
 
     need = cfg["split"]["n_train"] + cfg["split"]["n_validation"] + cfg["split"]["n_test"]
-    target_pool = max(need * 4, need + 200)
+    manifest_cfg = cfg.get("manifest", {})
+    target_pool = int(manifest_cfg.get("target_eligible_pool", need * 4))
+    if target_pool < need:
+        raise ValueError("target_eligible_pool must be >= requested split total")
     eligible: list[dict] = []
     scanned = 0
     for chembl_id, smiles in iter_chembl_smiles(raw_path):
@@ -211,7 +219,7 @@ def main() -> None:
     write_json(manifests_dir / "hashes.json", hashes)
 
     write_json(
-        "artifacts/manifest_summary.json",
+        artifact_path(cfg, "manifest_summary.json"),
         {
             "scanned": scanned,
             "eligible_pool": len(eligible),
@@ -221,7 +229,7 @@ def main() -> None:
         },
     )
     print(json.dumps({"counts": {k: len(v) for k, v in splits.items()}, "seed": seed}, indent=2))
-    print("Freeze test manifest with: chmod a-w manifests/test.jsonl")
+    print(f"Freeze test manifest with: chmod a-w {manifests_dir / 'test.jsonl'}")
 
 
 if __name__ == "__main__":

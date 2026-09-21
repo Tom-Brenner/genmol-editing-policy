@@ -178,8 +178,8 @@ def _exact_core_flag(row: dict[str, Any]) -> bool:
     return bool(row.get("exact_core"))
 
 
-def parent_success(
-    rewards_or_flags: list[dict[str, Any]],
+def completion_success(
+    row: dict[str, Any],
     *,
     success_qed_delta: float = 0.05,
     min_tanimoto: float = 0.50,
@@ -187,9 +187,9 @@ def parent_success(
     max_heavy_atom_delta_fraction: float | None = DEFAULT_HEAVY_ATOM_DELTA_FRACTION,
     constraints: dict | None = None,
 ) -> bool:
-    """True if any sample meets success. Thresholds are arguments — recompute from JSONL freely.
+    """The per-completion event whose OR is ``parent_success``.
 
-    Heavy-atom budget: if ``max_heavy_atom_delta`` is set, use it for every row;
+    Heavy-atom budget: if ``max_heavy_atom_delta`` is set, use it;
     else per-row ``max_heavy_atom_delta_allowed`` if present; else
     ``round(fraction * parent_n_heavy_atoms)``.
     """
@@ -199,29 +199,52 @@ def parent_success(
         if "max_heavy_atom_delta_fraction" in constraints
         else max_heavy_atom_delta_fraction
     )
-    for row in rewards_or_flags:
-        if not row.get("valid"):
-            continue
-        if not _exact_core_flag(row):
-            continue
-        if row.get("tanimoto") is None or row["tanimoto"] < min_tanimoto:
-            continue
-        if row.get("heavy_atom_delta") is None:
-            continue
-        if max_heavy_atom_delta is not None:
-            budget = int(max_heavy_atom_delta)
-        elif row.get("max_heavy_atom_delta_allowed") is not None:
-            budget = int(row["max_heavy_atom_delta_allowed"])
-        else:
-            n_heavy = row.get("parent_n_heavy_atoms")
-            if n_heavy is None:
-                continue
-            budget = max_heavy_atom_delta_allowed(int(n_heavy), fraction=float(fraction or DEFAULT_HEAVY_ATOM_DELTA_FRACTION))
-        if abs(row["heavy_atom_delta"]) > budget:
-            continue
-        if row.get("qed_delta_raw") is None:
-            continue
-        if row["qed_delta_raw"] < success_qed_delta:
-            continue
-        return True
-    return False
+    if not row.get("valid") or not _exact_core_flag(row):
+        return False
+    if row.get("tanimoto") is None or row["tanimoto"] < min_tanimoto:
+        return False
+    if row.get("heavy_atom_delta") is None or row.get("qed_delta_raw") is None:
+        return False
+    if max_heavy_atom_delta is not None:
+        budget = int(max_heavy_atom_delta)
+    elif row.get("max_heavy_atom_delta_allowed") is not None:
+        budget = int(row["max_heavy_atom_delta_allowed"])
+    else:
+        n_heavy = row.get("parent_n_heavy_atoms")
+        if n_heavy is None:
+            return False
+        budget = max_heavy_atom_delta_allowed(
+            int(n_heavy),
+            fraction=float(fraction or DEFAULT_HEAVY_ATOM_DELTA_FRACTION),
+        )
+    if abs(row["heavy_atom_delta"]) > budget:
+        return False
+    if row["qed_delta_raw"] < success_qed_delta:
+        return False
+    return True
+
+
+def parent_success(
+    rewards_or_flags: list[dict[str, Any]],
+    *,
+    success_qed_delta: float = 0.05,
+    min_tanimoto: float = 0.50,
+    max_heavy_atom_delta: int | None = None,
+    max_heavy_atom_delta_fraction: float | None = DEFAULT_HEAVY_ATOM_DELTA_FRACTION,
+    constraints: dict | None = None,
+) -> bool:
+    """True if any completion meets ``completion_success``.
+
+    Thresholds are arguments so success can be recomputed from JSONL.
+    """
+    return any(
+        completion_success(
+            row,
+            success_qed_delta=success_qed_delta,
+            min_tanimoto=min_tanimoto,
+            max_heavy_atom_delta=max_heavy_atom_delta,
+            max_heavy_atom_delta_fraction=max_heavy_atom_delta_fraction,
+            constraints=constraints,
+        )
+        for row in rewards_or_flags
+    )

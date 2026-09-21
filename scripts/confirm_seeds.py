@@ -22,6 +22,7 @@ from rollout_policy.features import action_features
 from rollout_policy.genmol_adapter import FrozenGenMol
 from rollout_policy.generate import generate_action_rollouts
 from rollout_policy.io import (
+    artifact_path,
     existing_record_keys,
     load_experiment_config,
     load_jsonl,
@@ -192,7 +193,7 @@ def main() -> None:
         "note": "Seed-sensitivity confirmation, not an independent test set.",
     }
     write_json(out_dir / "metrics.json", report)
-    write_json("artifacts/confirmation_metrics.json", report)
+    write_json(artifact_path(cfg, "confirmation_metrics.json"), report)
     print(json.dumps(report, indent=2))
 
 

@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +15,7 @@ from rollout_policy.dry_run import action_from_dict
 from rollout_policy.genmol_adapter import FrozenGenMol
 from rollout_policy.generate import generate_action_rollouts
 from rollout_policy.io import (
+    artifact_path,
     existing_record_keys,
     load_experiment_config,
     load_jsonl,
@@ -23,32 +23,7 @@ from rollout_policy.io import (
     resolve_path,
     write_json,
 )
-
-
-def aggregate_action_labels(records: list[dict]) -> list[dict]:
-    groups: dict[tuple, list[dict]] = defaultdict(list)
-    for row in records:
-        key = (row["parent_id"], row["action_id"])
-        groups[key].append(row)
-    labels = []
-    for (parent_id, action_id), rows in sorted(groups.items()):
-        rewards = [float(r["reward"]) for r in rows]
-        labels.append(
-            {
-                "parent_id": parent_id,
-                "action_id": action_id,
-                "core_id": rows[0]["core_id"],
-                "n_rollouts": len(rows),
-                "rewards": rewards,
-                "rhat": float(sum(rewards) / len(rewards)),
-                "reward_variance": float(
-                    sum((x - sum(rewards) / len(rewards)) ** 2 for x in rewards) / max(len(rewards) - 1, 1)
-                ),
-                "n_valid": sum(1 for r in rows if r.get("valid")),
-                "n_exact_core": sum(1 for r in rows if r.get("exact_core")),
-            }
-        )
-    return labels
+from rollout_policy.labels import aggregate_action_labels
 
 
 def main() -> None:
@@ -86,18 +61,22 @@ def main() -> None:
             )
 
     records = load_jsonl(out)
-    labels = aggregate_action_labels(records)
+    labels = aggregate_action_labels(records, cfg)
     labels_path = resolve_path(cfg["paths"]["results_dir"]) / "labels" / f"{args.split}_action_rhat.jsonl"
     from rollout_policy.io import write_jsonl_atomic
 
     write_jsonl_atomic(labels_path, labels)
     write_json(
-        f"artifacts/labels_{args.split}_summary.json",
+        artifact_path(cfg, f"labels_{args.split}_summary.json"),
         {
             "split": args.split,
             "n_records": len(records),
             "n_actions": len(labels),
             "mean_rhat": sum(l["rhat"] for l in labels) / max(len(labels), 1),
+            "n_successes": sum(l["n_successes"] for l in labels),
+            "mean_p_success_observed": sum(l["p_success_observed"] for l in labels)
+            / max(len(labels), 1),
+            "label_schema_version": 2,
         },
     )
     print(json.dumps({"split": args.split, "n_records": len(records), "n_actions": len(labels)}, indent=2))

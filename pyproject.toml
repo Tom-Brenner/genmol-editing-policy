@@ -22,6 +22,10 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
+models = [
+  "lightgbm>=4.0,<5",
+  "torch-geometric>=2.5,<3",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -29,3 +33,6 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+  "gpu: requires CUDA; run on a GPU machine",
+]

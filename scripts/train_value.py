@@ -21,6 +21,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from rollout_policy.eligibility import core_mol_from_parent
 from rollout_policy.features import FEATURE_NAMES, action_features
 from rollout_policy.io import (
+    artifact_path,
     load_experiment_config,
     load_jsonl,
     resolve_path,
@@ -250,7 +251,7 @@ def main() -> None:
                 "learned": best["val_top1"],
             },
         }
-        write_json("artifacts/value_model_validation_report.json", report)
+        write_json(artifact_path(cfg, "value_model_validation_report.json"), report)
         print(json.dumps({"best": best, "policies": report["validation_policy_mean_rhat"]}, indent=2))
     except KeyboardInterrupt:
         interrupted = True

@@ -25,6 +25,7 @@ from rollout_policy.dry_run import (
 from rollout_policy.eligibility import enumerate_eligible_actions
 from rollout_policy.generate import generate_action_rollouts
 from rollout_policy.io import (
+    artifact_path,
     existing_record_keys,
     load_experiment_config,
     load_jsonl,
@@ -181,10 +182,10 @@ def main() -> None:
         "pass_time": mean_wall <= cfg["throughput_gate"]["max_seconds_per_completion"],
         "pass_valid": (valid / n if n else 0.0) >= cfg["throughput_gate"]["min_valid_fraction"],
     }
-    write_json(
-        "artifacts/throughput_report_dry_run.json" if args.dry_run else "artifacts/throughput_report.json",
-        report,
+    report_name = (
+        "throughput_report_dry_run.json" if args.dry_run else "throughput_report.json"
     )
+    write_json(artifact_path(cfg, report_name), report)
     print(json.dumps(report, indent=2))
     if args.dry_run:
         print("Probe dry-run finished (mock generator; gate not authoritative)")

@@ -237,23 +237,26 @@ def _rdkit_cut_piece_atom_indices(
     return out
 
 
-def align_actions_to_safe_spans(
+def align_actions_to_safe_spans_diagnostic(
     parent: Chem.Mol, rdkit_actions: list[dict[str, Any]]
-) -> list[EligibleAction]:
-    """Attach verified SAFE fragment indices/spans to RDKit pendant actions.
+) -> tuple[list[EligibleAction], list[str]]:
+    """Align RDKit pendants to SAFE spans and record why unmatched actions drop.
 
-    Uses a pendant-only slicer (cut bonds = core↔pendant attachments) so each
-    eligible pendant is one '.'-delimited SAFE fragment. Alignment matches by
-    element multiset (SAFE decode vs RDKit fragment), not fragile substructure
-    remapping of attachment-numbered SAFE strings.
+    Successful alignments match ``align_actions_to_safe_spans``. Reasons use
+    stable names: ``safe_decode_failed``, ``ambiguous_element_multiset``,
+    ``missing_safe_fragment``, ``missing_cut_piece``.
     """
     smiles = Chem.MolToSmiles(parent, canonical=True)
     cut_bonds = tuple(
         (a["core_attachment_atom"], a["fragment_attachment_atom"]) for a in rdkit_actions
     )
-    encoded, fragments = _encode_safe_fragments(smiles, cut_bonds)
+    reasons: list[str] = []
+    try:
+        _encoded, fragments = _encode_safe_fragments(smiles, cut_bonds)
+    except Exception:
+        return [], ["safe_decode_failed"]
     if not fragments:
-        return []
+        return [], ["safe_decode_failed"]
 
     char_spans: list[tuple[int, int]] = []
     cursor = 0
@@ -273,13 +276,20 @@ def align_actions_to_safe_spans(
             for i, ms in enumerate(frag_multisets)
             if i not in used_frag_idx and ms == target_ms
         ]
+        if len(matches) > 1:
+            reasons.append("ambiguous_element_multiset")
+            continue
         if len(matches) != 1:
+            if frag_multisets and all(ms is None for ms in frag_multisets):
+                reasons.append("safe_decode_failed")
+            else:
+                reasons.append("missing_safe_fragment")
             continue
         frag_idx = matches[0]
-        # Confirm the cut-piece atom set equals the RDKit pendant atom set.
         pieces = _rdkit_cut_piece_atom_indices(parent, cut_bonds)
         target_atoms = frozenset(action["fragment_atom_indices"])
         if target_atoms not in pieces:
+            reasons.append("missing_cut_piece")
             continue
         used_frag_idx.add(frag_idx)
         aligned.append(
@@ -299,6 +309,20 @@ def align_actions_to_safe_spans(
                 slicer_cut_bonds=cut_bonds,
             )
         )
+    return aligned, reasons
+
+
+def align_actions_to_safe_spans(
+    parent: Chem.Mol, rdkit_actions: list[dict[str, Any]]
+) -> list[EligibleAction]:
+    """Attach verified SAFE fragment indices/spans to RDKit pendant actions.
+
+    Uses a pendant-only slicer (cut bonds = core↔pendant attachments) so each
+    eligible pendant is one '.'-delimited SAFE fragment. Alignment matches by
+    element multiset (SAFE decode vs RDKit fragment), not fragile substructure
+    remapping of attachment-numbered SAFE strings.
+    """
+    aligned, _reasons = align_actions_to_safe_spans_diagnostic(parent, rdkit_actions)
     return aligned
 
 
@@ -328,6 +352,87 @@ def verify_action_roundtrip(parent: Chem.Mol, action: EligibleAction) -> None:
         )
 
 
+@dataclass(frozen=True)
+class EligibilityDiagnostics:
+    n_rdkit: int
+    n_safe_aligned: int
+    n_verified: int
+    actions: tuple[EligibleAction, ...]
+    rejection_reasons: tuple[str, ...]
+
+
+def _offline_actions(parent: Chem.Mol, rdkit_actions: list[dict[str, Any]]) -> list[EligibleAction]:
+    cut_bonds = tuple(
+        (a["core_attachment_atom"], a["fragment_attachment_atom"]) for a in rdkit_actions
+    )
+    aligned: list[EligibleAction] = []
+    for rank, action in enumerate(rdkit_actions):
+        aligned.append(
+            EligibleAction(
+                action_id=f"a{rank}_rdkit",
+                fragment_atom_indices=action["fragment_atom_indices"],
+                core_attachment_atom=action["core_attachment_atom"],
+                fragment_attachment_atom=action["fragment_attachment_atom"],
+                bond_type=action["bond_type"],
+                canonical_order_key=action["canonical_order_key"],
+                safe_span=(rank, rank + 1),
+                safe_fragment_index=rank,
+                fragment_smiles=action["fragment_smiles"],
+                fragment_heavy_atoms=action["fragment_heavy_atoms"],
+                is_ring=action["is_ring"],
+                is_terminal=action["is_terminal"],
+                slicer_cut_bonds=cut_bonds,
+            )
+        )
+    return aligned
+
+
+def enumerate_aligned_actions(
+    parent: Chem.Mol,
+    *,
+    require_safe_alignment: bool = True,
+) -> EligibilityDiagnostics:
+    """Enumerate and verify pendants without applying the min/max count policy."""
+    rdkit_actions = enumerate_rdkit_pendant_actions(parent)
+    reasons: list[str] = []
+    if require_safe_alignment:
+        aligned, reasons = align_actions_to_safe_spans_diagnostic(parent, rdkit_actions)
+        verified: list[EligibleAction] = []
+        for action in aligned:
+            try:
+                verify_action_roundtrip(parent, action)
+                verified.append(action)
+            except Exception as exc:
+                reasons.append(f"roundtrip_failed:{type(exc).__name__}")
+    else:
+        verified = _offline_actions(parent, rdkit_actions)
+        aligned = verified
+    ordered = tuple(sorted(verified, key=lambda a: a.canonical_order_key))
+    return EligibilityDiagnostics(
+        n_rdkit=len(rdkit_actions),
+        n_safe_aligned=len(aligned),
+        n_verified=len(ordered),
+        actions=ordered,
+        rejection_reasons=tuple(reasons),
+    )
+
+
+def apply_action_count_policy(
+    actions: tuple[EligibleAction, ...] | list[EligibleAction],
+    *,
+    min_actions: int,
+    max_actions: int | None,
+) -> list[EligibleAction]:
+    """Truncate in canonical order. Return nothing when the minimum is not met."""
+    if min_actions < 1:
+        raise ValueError("min_actions must be positive")
+    if max_actions is not None and max_actions < min_actions:
+        raise ValueError("max_actions must be >= min_actions")
+    ordered = list(actions)
+    retained = ordered if max_actions is None else ordered[:max_actions]
+    return retained if len(retained) >= min_actions else []
+
+
 def enumerate_eligible_actions(
     parent: Chem.Mol,
     *,
@@ -340,6 +445,9 @@ def enumerate_eligible_actions(
     If more than `max_actions` qualify, retain the first `max_actions` under the
     deterministic canonical ordering. Parents outside [min_actions, max_actions]
     after alignment yield an empty list (caller should reject).
+
+    SAFE round-trip remains all-or-nothing: one failed action rejects the parent.
+    ``enumerate_aligned_actions`` reports per-action failures without that rule.
     """
     rdkit_actions = enumerate_rdkit_pendant_actions(parent)
     if not rdkit_actions:
@@ -356,35 +464,12 @@ def enumerate_eligible_actions(
             except Exception:
                 return []
     else:
-        cut_bonds = tuple(
-            (a["core_attachment_atom"], a["fragment_attachment_atom"]) for a in rdkit_actions
-        )
-        aligned = []
-        for rank, action in enumerate(rdkit_actions):
-            aligned.append(
-                EligibleAction(
-                    action_id=f"a{rank}_rdkit",
-                    fragment_atom_indices=action["fragment_atom_indices"],
-                    core_attachment_atom=action["core_attachment_atom"],
-                    fragment_attachment_atom=action["fragment_attachment_atom"],
-                    bond_type=action["bond_type"],
-                    canonical_order_key=action["canonical_order_key"],
-                    safe_span=(rank, rank + 1),
-                    safe_fragment_index=rank,
-                    fragment_smiles=action["fragment_smiles"],
-                    fragment_heavy_atoms=action["fragment_heavy_atoms"],
-                    is_ring=action["is_ring"],
-                    is_terminal=action["is_terminal"],
-                    slicer_cut_bonds=cut_bonds,
-                )
-            )
+        aligned = _offline_actions(parent, rdkit_actions)
 
-    aligned = sorted(aligned, key=lambda a: a.canonical_order_key)
-    if len(aligned) > max_actions:
-        aligned = aligned[:max_actions]
-    if len(aligned) < min_actions or len(aligned) > max_actions:
-        return []
-    return aligned
+    ordered = tuple(sorted(aligned, key=lambda a: a.canonical_order_key))
+    return apply_action_count_policy(
+        ordered, min_actions=min_actions, max_actions=max_actions
+    )
 
 
 def core_mol_from_parent(parent: Chem.Mol) -> Chem.Mol:

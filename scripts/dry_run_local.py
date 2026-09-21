@@ -36,6 +36,7 @@ from rollout_policy.eligibility import core_mol_from_parent
 from rollout_policy.features import FEATURE_NAMES, action_features
 from rollout_policy.generate import generate_action_rollouts
 from rollout_policy.io import (
+    artifact_path,
     ensure_dir,
     existing_record_keys,
     load_experiment_config,
@@ -44,6 +45,7 @@ from rollout_policy.io import (
     write_json,
     write_jsonl_atomic,
 )
+from rollout_policy.labels import aggregate_action_labels
 from rollout_policy.model import ValueMLP, weighted_huber_loss
 from rollout_policy.policies import select_action
 from rollout_policy.scoring import parent_success
@@ -86,29 +88,6 @@ def _split_fixtures(rows: list[dict], seed: int) -> dict[str, list[dict]]:
             rec["split"] = name
             splits[name].append(rec)
     return splits
-
-
-def _aggregate_labels(records: list[dict]) -> list[dict]:
-    groups: dict[tuple, list[dict]] = defaultdict(list)
-    for row in records:
-        groups[(row["parent_id"], row["action_id"])].append(row)
-    labels = []
-    for (parent_id, action_id), rows in sorted(groups.items()):
-        rewards = [float(r["reward"]) for r in rows]
-        mean = sum(rewards) / len(rewards)
-        var = sum((x - mean) ** 2 for x in rewards) / max(len(rewards) - 1, 1)
-        labels.append(
-            {
-                "parent_id": parent_id,
-                "action_id": action_id,
-                "core_id": rows[0]["core_id"],
-                "n_rollouts": len(rows),
-                "rewards": rewards,
-                "rhat": float(mean),
-                "reward_variance": float(var),
-            }
-        )
-    return labels
 
 
 def main() -> None:
@@ -168,7 +147,7 @@ def main() -> None:
                     done_keys=done,
                 )
 
-    labels = _aggregate_labels(load_jsonl(label_path))
+    labels = aggregate_action_labels(load_jsonl(label_path), cfg)
     write_jsonl_atomic(outdir / "action_rhat.jsonl", labels)
 
     # Tiny MLP fit (train only scaler/model).
@@ -325,7 +304,7 @@ def main() -> None:
         "note": "Mock generator only. Does not validate GenMol/SAFE/checkpoint.",
     }
     write_json(outdir / "report.json", report)
-    write_json("artifacts/dry_run_report.json", report)
+    write_json(artifact_path(cfg, "dry_run_report.json"), report)
     print(json.dumps(report, indent=2))
     print("DRY-RUN PASSED (local fp32 mock path)")
 

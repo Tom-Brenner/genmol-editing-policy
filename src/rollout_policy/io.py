@@ -39,6 +39,11 @@ def load_sampling_config(path: str | Path | None = None, experiment: dict | None
     return load_yaml(path)
 
 
+def artifact_path(cfg: dict[str, Any], filename: str) -> Path:
+    """Experiment report path under the configured artifacts directory."""
+    return resolve_path(cfg["paths"]["artifacts_dir"]) / filename
+
+
 def ensure_dir(path: str | Path) -> Path:
     resolved = resolve_path(path)
     resolved.mkdir(parents=True, exist_ok=True)
