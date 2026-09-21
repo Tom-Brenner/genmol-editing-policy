@@ -2,43 +2,41 @@
 
 Project: `glen-503819` (number `398729092111`)  
 gcloud config: `glen` (`source ~/vits/switch-gcloud.sh glen`)  
-VM: **`genmol-rollout`** — **not created yet** (target: `g2-standard-8` / L4, **100 GB** boot disk)  
-Bucket: `gs://genmol-rollout-data` — **not created yet** (optional; for result backups)  
+Conda env: **`genmol-rollout`** (Python 3.10). If this env already exists on the GPU VM, do not recreate it — add only the V2 packages in §6.  
+VM: any GPU box that already has that env (locked run used an L4). A new `g2-standard-8` / 100 GB VM is §3, and only if you do not already have one.  
+Bucket: `gs://genmol-rollout-data` — optional, for result backups  
 Repo: `git@github.com:Tom-Brenner/genmol-editing-policy.git`
 
 Budget (from `plan.md`): ~$200 ceiling · alerts at $150 / $175 · stop GPU before ~$185 accrued · ~180 GPU-hour soft cap. Confirm **regional** L4 on-demand price before create; dollar cap wins.
 
 Code and configs ship via **git** (commit on the laptop, `git push`, `git pull` on the VM). Do **not** scp experiment code onto the VM.
 
-Large files are **not** in git and are **not** rsynced from the laptop. Download on the VM:
+Large files are **not** in git and are **not** rsynced from the laptop. If the locked run already left them on the VM, keep those copies. Download only a path that is missing:
 
 | Artifact | Size | Obtained on VM via |
 | --- | --- | --- |
-| Experiment code / configs | — | `git clone` then `git pull` (see §6a) |
+| Experiment code / configs | — | `git pull` in the existing clone (see §6a) |
 | Ibuprofen smoke fixture | 1 line | committed: `data/fixtures/CHEMBL521.tsv` |
-| GenMol V1 `model.ckpt` | ~1.4 GB | `python scripts/download_genmol_ckpt.py` |
-| ChEMBL 37 chemreps | ~279 MB gz | `python scripts/download_chembl.py` (FTP; independent of ChEMBL REST) |
+| GenMol V1 `model.ckpt` | ~1.4 GB | already on the VM, else `python scripts/download_genmol_ckpt.py` |
+| ChEMBL 37 chemreps | ~279 MB gz | already on the VM, else `python scripts/download_chembl.py` |
 
-Configs: `configs/experiment.yaml`, `configs/genmol_sampling.yaml` (`bf16: true` → L4 uses bf16).
+Configs: locked `configs/experiment.yaml`; V2 `configs/experiment_v2.yaml`. Sampling stays `configs/genmol_sampling.yaml` (`bf16: true` → L4 uses bf16).
 
 ---
 
 ## Status (2026-09-21)
 
-### Done
+The locked 1,400-parent protocol is finished. Its manifests, labels, checkpoint, and `results/test` stay read-only. Experiment V2 (`plan.md`, `configs/experiment_v2.yaml`) runs in the same `genmol-rollout` env.
+
+**Next step on the GPU VM:** §6 incremental install → §6b tests. Do not create a second conda env. Do not re-download chemreps or the GenMol checkpoint if those files are already present. Create a VM (§3) only when this env does not exist anywhere.
 
 | Item | Notes |
 | --- | --- |
 | Private GitHub repo | `Tom-Brenner/genmol-editing-policy` (code + pinned GenMol source; no ckpt/chemreps). |
-| Local smoke | `--bf16` fp16 fallback on 1080 Ti; one-molecule SAFE remask passed. |
-| Disk sizing | **100 GB** boot disk (150 GB optional headroom). |
-| This doc | Modeled on `~/Dropbox/DiffSinger/GCP_SETUP.md`. |
-
-### Not done — pick up here
-
-**Next step: §1 credentials (if needed) → §2 bucket (optional) → §3 create VM → §5 SSH → §6 VM setup.**
-
-Do **not** upload local `vendor/genmol/checkpoints/model.ckpt` unless you prefer GCS staging over Hugging Face on the VM.
+| `genmol-rollout` env | Python 3.10, GenMol requirements, editable GenMol + this repo. Reuse it. |
+| ChEMBL 37 chemreps | `data/raw/chembl_37_chemreps.txt.gz` on the VM (~279 MB). Assumed to contain 40,000 V2-eligible parents. Do not download another copy. |
+| GenMol V1 checkpoint | `vendor/genmol/checkpoints/model.ckpt`. Leave it in place. |
+| V2 still to run | `pytest` (including CUDA tests), `scripts/audit_action_counts.py`, then the V2 manifest. |
 
 ---
 
@@ -169,9 +167,50 @@ First SSH generates `~/.ssh/google_compute_engine` automatically.
 
 ---
 
-## 6 — VM setup (on VM, one-time)
+## 6 — Environment
 
-Image is Ubuntu 22.04 + CUDA 12.9 + driver 580, but system Python is **3.12**. GenMol needs **Python 3.10**.
+Prefer the block below. The from-scratch block is only for a machine that does not already have `genmol-rollout`.
+
+### Incremental (existing `genmol-rollout` env)
+
+Pull the V2 commit, then add pytest, LightGBM, and PyTorch Geometric. Do not rerun `conda create`, do not reinstall `vendor/genmol/env/requirements.txt`, and do not let pip replace the CUDA torch already in the env.
+
+```bash
+cd ~/genmol-editing-policy
+conda activate genmol-rollout
+git pull
+
+python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+# Note the torch version. After the next install it must still be a CUDA build.
+
+python -m pip install -e '.[dev,models]'
+
+python -c "import torch; assert torch.cuda.is_available(), 'pip replaced CUDA torch; reinstall the CUDA wheel'"
+python -c "import lightgbm, torch_geometric; print('lightgbm', lightgbm.__version__, 'pyg', torch_geometric.__version__)"
+```
+
+`[dev]` is pytest. `[models]` is `lightgbm>=4,<5` and `torch-geometric>=2.5,<3`. GenMol, RDKit, and the checkpoint are already installed.
+
+If `pip install -e '.[dev,models]'` swaps in a CPU torch, put the CUDA wheel back without touching the rest of the env. Match the version printed above (the GenMol pin is `torch==2.6.0`):
+
+```bash
+python -m pip install 'torch==2.6.0' --index-url https://download.pytorch.org/whl/cu124
+python -c "import torch; assert torch.cuda.is_available()"
+```
+
+Chemreps and the checkpoint should already be on disk. Confirm, and download only a missing file:
+
+```bash
+test -f data/raw/chembl_37_chemreps.txt.gz && echo "chemreps present"
+test -f vendor/genmol/checkpoints/model.ckpt && echo "checkpoint present"
+# only if a line above did not print:
+# python scripts/download_chembl.py
+# python scripts/download_genmol_ckpt.py
+```
+
+### From scratch (no `genmol-rollout` env yet)
+
+Image is Ubuntu 22.04 + CUDA 12.9 + driver 580, but system Python is **3.12**. GenMol needs **Python 3.10**. Skip this subsection when `conda activate genmol-rollout` already works.
 
 ```bash
 # Drivers / GPU
@@ -204,7 +243,7 @@ python -m pip install -r vendor/genmol/env/requirements.txt
 # Prefer a CUDA wheel matching the image (cu124/cu128/cu129); if pip pulls CPU torch, reinstall:
 # python -m pip install 'torch==2.6.0' --index-url https://download.pytorch.org/whl/cu124
 python -m pip install -e vendor/genmol
-python -m pip install -e ".[dev]"
+python -m pip install -e '.[dev,models]'
 
 # GenMol SAFE import fix if needed (see vendor/genmol/README.md troubleshooting):
 #   comment stock safe/__init__.py lines; append:
@@ -215,7 +254,9 @@ python -c "from rollout_policy.precision import resolve_precision; print(resolve
 # Expect: bf16 on L4
 ```
 
-### Downloads (on VM)
+### Downloads (on VM, from-scratch only)
+
+Skip when §6 incremental already found the chemreps file and the checkpoint.
 
 Accept the [NVIDIA Open Model License](https://huggingface.co/nvidia/NV-GenMol-89M-v1) on Hugging Face first (browser / token if gated).
 
@@ -252,14 +293,57 @@ gcloud storage cp \
 
 ---
 
+## 6b — Tests (on the GPU VM)
+
+Run these after §6, in `genmol-rollout`, from `~/genmol-editing-policy`. No second environment. `tests/test_gpu_models.py` skips itself without CUDA, so run it here rather than on a laptop.
+
+```bash
+conda activate genmol-rollout
+cd ~/genmol-editing-policy
+
+python -m pytest \
+  tests/test_labels.py \
+  tests/test_eligibility_counts.py \
+  tests/test_core_check.py \
+  tests/test_graph_model.py \
+  tests/test_gpu_models.py \
+  -q
+```
+
+| File | What it checks | Needs |
+| --- | --- | --- |
+| `tests/test_labels.py` | `completion_success` matches `parent_success`; schema-v2 action counts; binomial NLL ranks a correct logit above a wrong one | CPU |
+| `tests/test_eligibility_counts.py` | Raising the action cap does not invent pendants; cap 4 truncates in canonical order; min=4 drops a 3-action parent; ambiguous SAFE and round-trip failures are counted | CPU, no chemreps |
+| `tests/test_core_check.py` | Locked QED-threshold and heavy-atom budget tests | CPU |
+| `tests/test_graph_model.py` | Two actions yield different graphs; core/fragment masks; selected cut marked both ways; CPU GATv2 backward; checkpoint reload | CPU + `torch-geometric` |
+| `tests/test_gpu_models.py` | Binomial backward, a short shallow-MLP step, and a GATv2 step on CUDA | NVIDIA GPU + `torch-geometric` |
+
+`test_graph_model.py` and the GATv2 part of `test_gpu_models.py` skip until `[models]` is installed. Do not treat a skip of `test_gpu_models.py` as a pass: `nvidia-smi` and `torch.cuda.is_available()` must be true on this machine.
+
+V2 label generation waits on this pytest plus the action-count audit. The audit reads the chemreps file already on the VM; it does not download it. `--offline-no-safe` is not a basis for the action cap.
+
+```bash
+python scripts/audit_action_counts.py --config configs/experiment_v2.yaml
+# writes artifacts_v2/action_count_audit.json
+# freeze min/max actions and target_eligible_pool from that file before:
+python scripts/prepare_manifest.py --config configs/experiment_v2.yaml
+chmod a-w manifests_v2/test.jsonl
+```
+
+The audit assumes 40,000 eligible parents exist and checks whether they pack into core-disjoint 30,000 / 5,000 / 5,000. V2 writes `manifests_v2/`, `artifacts_v2/`, `results_v2/`, and `data/processed/parents_v2.parquet` only. Leave `manifests/`, `artifacts/`, and `results/test` untouched.
+
+---
+
 ## 6a — Updating code (laptop git → VM pull)
 
 Edit, commit, and push from the **laptop**. On the VM only `git pull`. The deploy key is read-only.
 
+`git add -A` is not a required step and it does not re-upload files GitHub already has. `git push` sends commits the remote is missing. Stage only the paths you changed. Skip the laptop block entirely when `git status` on the laptop is clean: the VM just needs `git pull`.
+
 ```bash
-# laptop
+# laptop, only when there are new edits
 cd ~/genmol-editing-policy
-git add -A
+git add path/to/changed-file
 git commit -m "..."
 git push
 
@@ -282,6 +366,8 @@ git log -1 --oneline   # expect the laptop tip, not 94bb6c0
 ---
 
 ## 7 — Experiment phases with tmux (on VM)
+
+Phases 0–4 below are the locked protocol. They already ran. Do not rebuild `manifests/` or overwrite `results/test`. V2 starts at §6b (tests, then the action-count audit and `configs/experiment_v2.yaml`).
 
 Always `stop` the VM when idle. Run long jobs in tmux.
 
@@ -344,6 +430,12 @@ gcloud storage rsync ~/genmol-editing-policy/artifacts \
   gs://genmol-rollout-data/artifacts --recursive
 gcloud storage rsync ~/genmol-editing-policy/manifests \
   gs://genmol-rollout-data/manifests --recursive
+gcloud storage rsync ~/genmol-editing-policy/results_v2 \
+  gs://genmol-rollout-data/results_v2 --recursive
+gcloud storage rsync ~/genmol-editing-policy/artifacts_v2 \
+  gs://genmol-rollout-data/artifacts_v2 --recursive
+gcloud storage rsync ~/genmol-editing-policy/manifests_v2 \
+  gs://genmol-rollout-data/manifests_v2 --recursive
 ```
 
 ---
@@ -382,6 +474,18 @@ gcloud storage rsync \
 gcloud storage rsync \
   gs://genmol-rollout-data/manifests \
   ~/genmol-editing-policy-gcp/manifests --recursive
+
+gcloud storage rsync \
+  gs://genmol-rollout-data/results_v2 \
+  ~/genmol-editing-policy-gcp/results_v2 --recursive
+
+gcloud storage rsync \
+  gs://genmol-rollout-data/artifacts_v2 \
+  ~/genmol-editing-policy-gcp/artifacts_v2 --recursive
+
+gcloud storage rsync \
+  gs://genmol-rollout-data/manifests_v2 \
+  ~/genmol-editing-policy-gcp/manifests_v2 --recursive
 ```
 
 Or scp:
