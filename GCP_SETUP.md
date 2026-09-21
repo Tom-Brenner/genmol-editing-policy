@@ -26,17 +26,26 @@ Configs: locked `configs/experiment.yaml`; V2 `configs/experiment_v2.yaml`. Samp
 
 ## Status (2026-09-21)
 
-The locked 1,400-parent protocol is finished. Its manifests, labels, checkpoint, and `results/test` stay read-only. Experiment V2 (`plan.md`, `configs/experiment_v2.yaml`) runs in the same `genmol-rollout` env.
+The locked 1,400-parent protocol is finished. Experiment V2 (`plan.md`, `configs/experiment_v2.yaml`) is the run in progress, in the same `genmol-rollout` env.
 
-**Next step on the GPU VM:** §6 incremental install → §6b tests. Do not create a second conda env. Do not re-download chemreps or the GenMol checkpoint if those files are already present. Create a VM (§3) only when this env does not exist anywhere.
+The V2 audit and the 30,000 / 5,000 / 5,000 manifest are already on the GPU VM. `manifests_v2/test.jsonl` is frozen (`chmod a-w`).
+
+**Next step on the GPU VM:** §6b pytest if it has not already passed, then §7 Phase 2 label generation (`generate_labels.py --config configs/experiment_v2.yaml`). Those labels supervise the V2 candidates in `experiment-v2-handoff.md`: an action-conditioned GATv2, a new regularized tabular MLP, and LightGBM regressor and ranker. `scripts/train_value.py` is the locked protocol’s MLP and is not a V2 training command. Do not rebuild either manifest. Do not create a second conda env. Do not re-download chemreps or the GenMol checkpoint. Create a VM (§3) only when this env does not exist anywhere.
+
+Two manifests, two directories:
+
+| Tree | Where it sits | Split | What it is |
+| --- | --- | --- | --- |
+| `manifests/` | In git (`manifests/train.jsonl`, `validation.jsonl`, `test.jsonl`, `seeds.json`, `hashes.json`). Laptop and VM both have it after `git pull`. | 1,000 / 200 / 200, seed `20260919` | Locked protocol. `manifests/test.jsonl` is the held-out set behind `results/test`. Labels and the value-model checkpoint from that run are under `results/` and `artifacts/`. |
+| `manifests_v2/` | On the GPU VM at `~/genmol-editing-policy/manifests_v2/` (`train.jsonl`, `validation.jsonl`, `test.jsonl`, `seeds.json`, `hashes.json`). Produced there by the audit and `prepare_manifest.py`; not in git. | 30,000 / 5,000 / 5,000, seed `20261001` | Experiment V2. `manifests_v2/test.jsonl` is mode `a-w`. Audit outputs sit beside it: `artifacts_v2/eligible_parents.jsonl`, `artifacts_v2/action_count_audit.json`. Parent table: `data/processed/parents_v2.parquet`. Later labels, checkpoints, and the V2 test go to `results_v2/` and `artifacts_v2/`. |
 
 | Item | Notes |
 | --- | --- |
 | Private GitHub repo | `Tom-Brenner/genmol-editing-policy` (code + pinned GenMol source; no ckpt/chemreps). |
 | `genmol-rollout` env | Python 3.10, GenMol requirements, editable GenMol + this repo. Reuse it. |
-| ChEMBL 37 chemreps | `data/raw/chembl_37_chemreps.txt.gz` on the VM (~279 MB). Assumed to contain 40,000 V2-eligible parents. Do not download another copy. |
+| ChEMBL 37 chemreps | `data/raw/chembl_37_chemreps.txt.gz` on the VM (~279 MB). The V2 manifest was drawn from this file. Do not download another copy. |
 | GenMol V1 checkpoint | `vendor/genmol/checkpoints/model.ckpt`. Leave it in place. |
-| V2 still to run | `pytest` (including CUDA tests), `scripts/audit_action_counts.py`, then the V2 manifest. |
+| V2 still to run | `pytest` if not already green, then Phase 2 labels. After that, fit the GATv2, the regularized tabular MLP, and the two LightGBM models on `results_v2/labels/`. |
 
 ---
 
@@ -320,21 +329,15 @@ python -m pytest \
 
 `test_graph_model.py` and the GATv2 part of `test_gpu_models.py` skip until `[models]` is installed. Do not treat a skip of `test_gpu_models.py` as a pass: `nvidia-smi` and `torch.cuda.is_available()` must be true on this machine.
 
-V2 label generation waits on this pytest plus the action-count audit. The audit reads the chemreps file already on the VM; it does not download it. `--offline-no-safe` is not a basis for the action cap.
+These three commands already finished on the VM. They wrote `manifests_v2/` and froze the held-out file. Do not run them again.
 
 ```bash
 python scripts/audit_action_counts.py --config configs/experiment_v2.yaml
-# Ctrl+C stops the current script (audit or prepare_manifest).
-# Either script also stops after 120000 chemreps rows.
-# audit stops after 40,000 eligible parents and writes:
-#   artifacts_v2/eligible_parents.jsonl
-#   artifacts_v2/action_count_audit.json
-# freeze min/max actions and target_eligible_pool from that file before:
 python scripts/prepare_manifest.py --config configs/experiment_v2.yaml
 chmod a-w manifests_v2/test.jsonl
 ```
 
-The audit stops at 40,000 parents with at least two verified pendants and checks whether that set packs into core-disjoint 30,000 / 5,000 / 5,000. V2 writes `manifests_v2/`, `artifacts_v2/`, `results_v2/`, and `data/processed/parents_v2.parquet` only. Leave `manifests/`, `artifacts/`, and `results/test` untouched.
+Ctrl+C stops either scan, and each scan also stops after 120,000 chemreps rows. The audit stops earlier, at 40,000 parents with at least two verified pendants, and writes `artifacts_v2/eligible_parents.jsonl` and `artifacts_v2/action_count_audit.json`. `--offline-no-safe` is not a basis for the action cap. Label generation is §7 Phase 2.
 
 ---
 
@@ -371,7 +374,9 @@ git log -1 --oneline   # expect the laptop tip, not 94bb6c0
 
 ## 7 — Experiment phases with tmux (on VM)
 
-Phases 0–4 below are the locked protocol. They already ran. Do not rebuild `manifests/` or overwrite `results/test`. V2 starts at §6b (tests, then the action-count audit and `configs/experiment_v2.yaml`).
+Phases below are Experiment V2: 30,000 train / 5,000 validation / 5,000 test, config `configs/experiment_v2.yaml`. Every command passes that config, so reads come from `manifests_v2/` and writes go to `results_v2/` and `artifacts_v2/`. Omitting `--config` falls back to `configs/experiment.yaml` and the locked `manifests/` split.
+
+`manifests/` (1,000 / 200 / 200, seed `20260919`) stays the locked protocol. Its test result is `results/test`. Leave that tree in place.
 
 Always `stop` the VM when idle. Run long jobs in tmux.
 
@@ -381,44 +386,71 @@ conda activate genmol-rollout   # or: micromamba activate genmol-rollout
 cd ~/genmol-editing-policy
 ```
 
-### Phase 0 — throughput gate (max ~8 GPU-h)
+### Phase 0 — throughput gate (already passed)
+
+The frozen sampler already cleared the gate on this checkpoint (validity at least 25%, at most 20 s/completion). Repeat only if the VM image, `vendor/genmol/checkpoints/model.ckpt`, or `configs/genmol_sampling.yaml` changes. A repeat must exclude parents already in `manifests_v2/` and must not write into `results/`:
 
 ```bash
-python scripts/probe_genmol.py --config configs/experiment.yaml --bf16 true \
-  2>&1 | tee ~/probe.log
-python scripts/audit_records.py results/probes.jsonl --sample 50
-# Manual audit: zero core/mapping errors; validity ≥25%; ≤20 s/completion
+python scripts/probe_genmol.py --config configs/experiment_v2.yaml --bf16 true \
+  --output results_v2/probes.jsonl 2>&1 | tee ~/probe.log
+python scripts/audit_records.py results_v2/probes.jsonl --sample 50 \
+  --output artifacts_v2/audit_sample.jsonl
 ```
 
-### Phase 1 — manifest
+### Phase 1 — manifest (already done)
 
-The frozen 1000/200/200 split is committed under `manifests/` (git pull). Rebuild only if you intend to change the seed or filters:
+`prepare_manifest.py --config configs/experiment_v2.yaml` has written the core-disjoint 30,000 / 5,000 / 5,000 split under `manifests_v2/`, and `chmod a-w manifests_v2/test.jsonl` has frozen the held-out file. Do not rebuild it. Do not open `manifests_v2/test.jsonl` until the candidate set and the validation rule in `plan.md` are frozen.
+
+### Phase 2 — labels, then the V2 models
+
+The GPU hours go into rollouts. Eight completions per train or validation action. The same files then train every V2 candidate. Outputs: `results_v2/labels/{split}.jsonl` and `results_v2/labels/{split}_action_rhat.jsonl`. Train and validation only.
 
 ```bash
-python scripts/prepare_manifest.py --config configs/experiment.yaml --seed 20260919
-chmod a-w manifests/test.jsonl
+python scripts/generate_labels.py --config configs/experiment_v2.yaml \
+  --split validation --rollouts 8 2>&1 | tee ~/labels_val.log
+python scripts/generate_labels.py --config configs/experiment_v2.yaml \
+  --split train --rollouts 8 2>&1 | tee ~/labels_train.log
 ```
 
-### Phase 1–2 — labels + value model
+`scripts/train_value.py` fits the locked two-layer MLP with weighted Huber loss on the original 13 descriptors. That is the model already reported for the 1,400-parent protocol. Leave it on `configs/experiment.yaml`. Running it on `manifests_v2/` does not produce a V2 candidate.
+
+After the labels exist, fit the four models in `experiment-v2-handoff.md` and `plan.md`, all on the schema-v2 binomial labels and the richer fragment/attachment features. Selection uses validation top-1 observed success rate. None of them open `manifests_v2/test.jsonl`.
+
+| Candidate | What it is | Trainer in the handoff |
+| --- | --- | --- |
+| `gatv2` | Action-conditioned GATv2. Each example is one parent/action graph: atom features, both directed bonds, a selected-cut flag on the attachment edge, core and fragment masks. Three layers, four heads, 64 channels, then a binomial logit. This is the attention model. | `scripts/train_gat.py` |
+| `shallow_mlp` | New `TabularMLP`: one 64-unit hidden layer, dropout 0.15, weight decay `1e-4`, binomial NLL, on the V2 feature vector. A deeper net on the old 13 descriptors is not a substitute; the handoff’s point is that depth cannot invent the missing atom types and functional groups. | `scripts/train_tabular_models.py` |
+| `lightgbm_regressor` | Boosted tree. Pointwise regression on `n_successes / n_trials`, sample weight `n_trials`. LightGBM is the tree library pinned in the handoff (same role as XGBoost). | `scripts/train_tabular_models.py` |
+| `lightgbm_ranker` | LightGBM LambdaRank over actions of one parent. Scores are ranks, not probabilities. | `scripts/train_tabular_models.py` |
+
+`scripts/train_gat.py` is the GATv2 attention trainer. It reads the label counts, rebuilds one graph per manifest action, and writes `artifacts_v2/gatv2.pt`. Run it after both label files exist:
 
 ```bash
-python scripts/generate_labels.py --split validation --rollouts 8 2>&1 | tee ~/labels_val.log
-python scripts/generate_labels.py --split train --rollouts 8       2>&1 | tee ~/labels_train.log
-python scripts/train_value.py --config configs/experiment.yaml     2>&1 | tee ~/train_value.log
+python scripts/train_gat.py --config configs/experiment_v2.yaml \
+  2>&1 | tee ~/train_gat.log
 ```
 
-### Phase 3 — locked test
+`scripts/train_tabular_models.py` and `src/rollout_policy/predictors.py` are still the remaining handoff pieces (tabular MLP and the two LightGBM models, then a shared loader for the test). Label generation can start before those exist.
+
+### Phase 3 — held-out test (5,000 parents, 16 completions)
+
+Open `manifests_v2/test.jsonl` once, after one learned policy is frozen from the validation comparison above. The test is that policy plus random and largest-fragment, 16 completions each. The scorer has to be the frozen GATv2, tabular MLP, or LightGBM checkpoint. `scripts/evaluate_test.py` still loads the locked `ValueMLP` from `value_model.pt`, so it is not the V2 test command until it calls the shared predictor interface. When it does, the run is:
 
 ```bash
-python scripts/evaluate_test.py --config configs/experiment.yaml --rollouts 16 \
+python scripts/evaluate_test.py --config configs/experiment_v2.yaml --rollouts 16 \
   2>&1 | tee ~/eval_test.log
-chmod -R a-w results/test
+chmod -R a-w results_v2/test
 ```
+
+Metrics then land in `results_v2/test` and `artifacts_v2/test_metrics.json`.
 
 ### Phase 4 — seed confirmation
 
+Repeat the chosen learned policy and the stronger baseline with 16 new samples and no further fitting. `scripts/confirm_seeds.py` likewise still loads the locked MLP, so pass `--config configs/experiment_v2.yaml` only after it scores the frozen V2 checkpoint:
+
 ```bash
-python scripts/confirm_seeds.py --policies learned largest_fragment --rollouts 16 \
+python scripts/confirm_seeds.py --config configs/experiment_v2.yaml \
+  --policies learned largest_fragment --rollouts 16 \
   2>&1 | tee ~/confirm.log
 ```
 

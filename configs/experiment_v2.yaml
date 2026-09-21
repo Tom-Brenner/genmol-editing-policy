@@ -73,6 +73,17 @@ models:
     hidden_sizes: [64]
     dropout: 0.15
     weight_decay: 0.0001
+  # Action-conditioned GATv2 (attention), not a GCN. scripts/train_gat.py.
+  gatv2:
+    hidden_dim: 64
+    heads: 4
+    n_layers: 3
+    dropout: 0.15
+    learning_rate: 0.001
+    weight_decay: 0.0001
+    batch_size: 64
+    max_epochs: 200
+    patience: 20
 
 value_model:
   hidden_sizes: [64, 32]
