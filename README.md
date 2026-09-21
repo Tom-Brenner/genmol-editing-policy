@@ -27,6 +27,8 @@ Do **not** commit checkpoints, chemreps, or JSONL results.
 
 ## GCP VM (recommended)
 
+Step-by-step create/SSH/setup/phases: see **[`GCP_SETUP.md`](GCP_SETUP.md)** (modeled on the DiffSinger GCP runbook; uses `glen` gcloud config).
+
 Plan target (updated machine): one L4 GPU.
 
 ```bash
