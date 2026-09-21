@@ -164,7 +164,7 @@ Required parent filters:
 6. if more than four qualify, retain the first four under a deterministic ordering and persist the ordering key;
 7. reject any parent/action for which the selected SAFE span cannot be round-tripped and aligned to the RDKit fragment.
 
-Perform a group split by canonicalized Murcko core: 350 train, 75 validation, 75 test. Shuffle core groups using the manifest seed before assigning whole groups; never split a core group. Check that no core identifier occurs in more than one split.
+Perform a group split by canonicalized Murcko core: 1000 train, 200 validation, 200 test. Shuffle core groups using the manifest seed before assigning whole groups; never split a core group. Check that no core identifier occurs in more than one split.
 
 ### Download stub
 
@@ -370,7 +370,7 @@ The “two-layer MLP” means two hidden linear layers (64 and 32 here) plus a s
 
 ### Phase 0: compatibility / throughput
 
-Run 1,000 completions from 100 probe molecules not present in the 500-task manifest. Measure complete elapsed time: SAFE conversion, generation, decoding, core check, and scoring. Continue only if validity is at least 25%, a 50-record manual audit finds no mapping/core errors, and wall time is at most 20 seconds per completion.
+Run 1,000 completions from 100 probe molecules not present in the 1,400-task manifest. Measure complete elapsed time: SAFE conversion, generation, decoding, core check, and scoring. Continue only if validity is at least 25%, a 50-record manual audit finds no mapping/core errors, and wall time is at most 20 seconds per completion.
 
 ```bash
 python scripts/download_chembl.py
@@ -390,7 +390,7 @@ python scripts/generate_labels.py --split train --rollouts 8
 python scripts/train_value.py --config configs/experiment.yaml
 ```
 
-Do not claim there are exactly 14,000 train/validation label completions. With 2–4 actions, the specified workload is `425 × (2–4) × 8 = 6,800–13,600`; it is 10,200 at three actions per parent.
+Do not claim a single fixed label-completion count. With 2–4 actions, the specified workload is `1,200 × (2–4) × 8 = 19,200–38,400`; it is 28,800 at three actions per parent.
 
 ### Phase 3: locked test
 
@@ -400,25 +400,25 @@ For each test parent, select one action under each policy:
 - largest-fragment: maximum fragment heavy atoms; canonical action order breaks ties;
 - learned: eligible action with highest frozen MLP prediction; canonical action order breaks ties.
 
-Generate 16 candidates for every selected action. This is exactly `75 × 3 × 16 = 3,600` completion attempts.
+Generate 16 candidates for every selected action. This is exactly `200 × 3 × 16 = 9,600` completion attempts.
 
 ```bash
 python scripts/evaluate_test.py --config configs/experiment.yaml --rollouts 16
 chmod -R a-w results/test
 ```
 
-Calculate the primary parent-level success outcome before inspecting molecule examples. Use a paired bootstrap over 75 parents for learned minus largest-fragment success. Candidate success requires sanitization, exact core preservation, Tanimoto ≥0.50, absolute heavy-atom change ≤ round((1/3) × parent heavy atoms), and QED delta ≥0.05.
+Calculate the primary parent-level success outcome before inspecting molecule examples. Use a paired bootstrap over 200 parents for learned minus largest-fragment success. Candidate success requires sanitization, exact core preservation, Tanimoto ≥0.50, absolute heavy-atom change ≤ round((1/3) × parent heavy atoms), and QED delta ≥0.05.
 
 ### Phase 4: seed-sensitivity confirmation
 
-Repeat only the frozen learned policy and **largest-fragment** policy, not a baseline selected after seeing test performance. Use the same 75 test parents and 16 new samples per selected action: `75 × 2 × 16 = 2,400` attempts. This is a seed-sensitivity replication, not an independent test set.
+Repeat only the frozen learned policy and **largest-fragment** policy, not a baseline selected after seeing test performance. Use the same 200 test parents and 16 new samples per selected action: `200 × 2 × 16 = 6,400` attempts. This is a seed-sensitivity replication, not an independent test set.
 
 ```bash
 python scripts/confirm_seeds.py \
   --policies learned largest_fragment --rollouts 16 --seed-schedule confirmation-v1
 ```
 
-Across probes, train/validation labels, test, and confirmation, the specified completion count is 13,800–20,600, depending on 2–4 eligible actions per non-test parent. If budget planning reserves 21,000, label it explicitly as a retry/operational allowance rather than the nominal workload.
+Across probes, train/validation labels, test, and confirmation, the specified completion count is 36,200–55,400, depending on 2–4 eligible actions per non-test parent.
 
 ## Verification checklist
 
@@ -432,5 +432,5 @@ Before reporting a result, another LLM must verify all of the following:
 - [ ] Core verifier passed the adversarial unit tests and the required manual audit.
 - [ ] MLP scaler/model were fitted from train actions only.
 - [ ] No test result influenced model, feature, threshold, baseline, or sampling-setting selection.
-- [ ] Test includes three policies and 3,600 attempts; confirmation includes learned versus largest-fragment and 2,400 fresh attempts.
+- [ ] Test includes three policies and 9,600 attempts; confirmation includes learned versus largest-fragment and 6,400 fresh attempts.
 - [ ] Report all attempts and sanitized-only statistics separately, plus raw JSONL, metric code, paired-bootstrap seed, confidence intervals, validity change, and cost/throughput.

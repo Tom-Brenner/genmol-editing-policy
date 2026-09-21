@@ -95,3 +95,10 @@ sequential because stock `Sampler.generate` indexes row 0.
 **Why:** Phase 0 mean wall was 0.137 s/sample at batch size 1; L4 is idle on
 short remasks. Independent generators keep the pre-registered seed schedule
 without coupling Gumbel draws across candidates.
+
+### 2026-09-21 — Manifest 1000/200/200
+
+**Decision:** Core-disjoint split is 1,000 train / 200 validation / 200 test
+(manifest seed `20260919`). JSONL + `seeds.json` + `hashes.json` are committed
+so the VM gets them via `git pull`. Bulk ChEMBL chemreps stay on the VM via
+`python scripts/download_chembl.py` (FTP), not rsync from the laptop.

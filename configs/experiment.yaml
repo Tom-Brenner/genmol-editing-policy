@@ -44,9 +44,9 @@ rollouts:
   probe_completions_per_parent: 10
 
 split:
-  n_train: 350
-  n_validation: 75
-  n_test: 75
+  n_train: 1000
+  n_validation: 200
+  n_test: 200
   manifest_seed: 20260919
 
 value_model:

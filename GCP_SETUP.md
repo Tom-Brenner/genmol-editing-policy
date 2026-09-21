@@ -302,6 +302,8 @@ python scripts/audit_records.py results/probes.jsonl --sample 50
 
 ### Phase 1 — manifest
 
+The frozen 1000/200/200 split is committed under `manifests/` (git pull). Rebuild only if you intend to change the seed or filters:
+
 ```bash
 python scripts/prepare_manifest.py --config configs/experiment.yaml --seed 20260919
 chmod a-w manifests/test.jsonl

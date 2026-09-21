@@ -42,7 +42,7 @@ Store all eight rewards, validity and core-preservation indicators, output struc
 
 ## Data and split
 
-Create exactly 500 parent tasks from one pinned ChEMBL release. ChEMBL supplies a public, chemically diverse parent distribution; it is not used as experimental supervision because the reward is calculated.
+Create exactly 1,400 parent tasks from one pinned ChEMBL release. ChEMBL supplies a public, chemically diverse parent distribution; it is not used as experimental supervision because the reward is calculated.
 
 After standardized RDKit processing, retain neutralizable small molecules with:
 
@@ -54,7 +54,7 @@ After standardized RDKit processing, retain neutralizable small molecules with:
 
 Exclude salts, mixtures, failed sanitizations, multiple disconnections, and parents whose protected core cannot be uniquely verified after conversion. If more than four fragments are eligible, retain the first four using a deterministic canonical ordering recorded in the manifest.
 
-Split before generating rollouts, grouping by Bemis–Murcko core: 350 training, 75 validation, and 75 held-out test parents. Make the test manifest, seed schedule, and output directory read-only until final evaluation. This prevents policy-label leakage across related cores, although it cannot prove the GenMol checkpoint never encountered related structures during pretraining.
+Split before generating rollouts, grouping by Bemis–Murcko core: 1,000 training, 200 validation, and 200 held-out test parents. Make the test manifest, seed schedule, and output directory read-only until final evaluation. This prevents policy-label leakage across related cores, although it cannot prove the GenMol checkpoint never encountered related structures during pretraining.
 
 Source: [ChEMBL](https://www.ebi.ac.uk/chembl/), available under CC BY-SA 3.0.
 
@@ -78,13 +78,13 @@ Use one on-demand GCP `g2-standard-4` with an NVIDIA L4. At the planning rate of
 
 Set billing alerts at $150 and $175. Terminate GPU instances before accrued spend reaches $185, and write JSONL/checkpoints after every batch. Do not use an A100 or train GenMol.
 
-Phase 0 includes 1,000 batched completions from 100 probe molecules that are not in the 500-task manifest. Measure effective seconds per completion, including conversion and scoring.
+Phase 0 includes 1,000 batched completions from 100 probe molecules that are not in the 1,400-task manifest. Measure effective seconds per completion, including conversion and scoring.
 
 - **Proceed:** at least 25% valid completions, correct core checking in a 50-example manual audit, and at most 20 seconds per completion.
-- **Reduce:** at 20–30 seconds per completion, use 250 training parents while retaining the 75-parent validation and test sets.
+- **Reduce:** at 20–30 seconds per completion, use 250 training parents while retaining the 200-parent validation and test sets.
 - **Stop:** above 30 seconds per completion, validity below 25%, or unreliable core mapping. Deliver the compatibility/baseline result rather than an underpowered learned-policy result.
 
-The planned workload is about 14,000 training-and-validation label completions, 3,600 primary-test completions, 2,400 independent-confirmation completions, and 1,000 probes: roughly 21,000 completions. At 20 seconds each, this is about 117 GPU-hours, leaving setup and retry capacity within the cap.
+The planned workload is about 28,800 training-and-validation label completions (at 3 actions/parent), 9,600 primary-test completions, 6,400 independent-confirmation completions, and 1,000 probes: roughly 46,000 completions. At 0.14 seconds each this is well under the GPU-hour cap.
 
 Sources: [GCP pricing](https://cloud.google.com/products/compute/pricing/accelerator-optimized), [GenMol](https://proceedings.mlr.press/v267/lee25o.html), and the [GenMol repository](https://github.com/NVIDIA-Digital-Bio/GenMol).
 
@@ -97,11 +97,11 @@ Sources: [GCP pricing](https://cloud.google.com/products/compute/pricing/acceler
 3. Validate RDKit/SAFE mapping, protected-core preservation, and the 1,000-completion throughput gate.
 4. Write a versioned probe JSONL containing parent, core map, selected span, seed, output, reward components, wall time, and peak VRAM.
 
-**Exit criterion:** satisfy the throughput gate and freeze the implementation, checkpoint, and decoding settings before opening the 500-task manifest.
+**Exit criterion:** satisfy the throughput gate and freeze the implementation, checkpoint, and decoding settings before opening the 1,400-task manifest.
 
 ### Phase 1 — manifest and baseline validation (maximum 25 GPU-hours)
 
-1. Build and freeze the 350/75/75 core-disjoint ChEMBL manifest.
+1. Build and freeze the 1000/200/200 core-disjoint ChEMBL manifest.
 2. Implement the random and largest-fragment policies and reward computation.
 3. On validation only, produce eight rollouts for every eligible action and audit 50 parent/action/output records.
 4. Confirm that no validation or test core occurs in the training manifest.
@@ -122,7 +122,7 @@ Sources: [GCP pricing](https://cloud.google.com/products/compute/pricing/acceler
 1. For every test parent, select one fragment per policy without generating test action labels.
 2. Generate exactly 16 completions for every selected action. Use the same top-level seed schedule across policies where supported, retaining actual seeds in the output records.
 3. Compute all metrics before inspecting examples.
-4. Estimate paired differences in parent-level success with a paired bootstrap over the 75 parents.
+4. Estimate paired differences in parent-level success with a paired bootstrap over the 200 parents.
 
 **Exit criterion:** a locked result file with metrics, 95% confidence intervals, and raw outputs. Do not change a policy or hyperparameter after this point.
 

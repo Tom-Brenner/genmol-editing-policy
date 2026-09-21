@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the core-disjoint 350/75/75 ChEMBL manifest."""
+"""Build the core-disjoint 1000/200/200 ChEMBL manifest."""
 
 from __future__ import annotations
 

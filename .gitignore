@@ -10,9 +10,10 @@ data/fixtures/*.json
 !data/fixtures/dry_run_parents.tsv
 !data/fixtures/.gitkeep
 
-manifests/*.jsonl
-manifests/hashes.json
-manifests/seeds.json
+# Frozen split is committed so the VM can git pull it (not rsync).
+!manifests/*.jsonl
+!manifests/hashes.json
+!manifests/seeds.json
 !manifests/.gitkeep
 
 artifacts/**

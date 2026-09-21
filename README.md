@@ -120,7 +120,7 @@ requested. `--bf16 false` forces float32.
 python scripts/probe_genmol.py --config configs/experiment.yaml --bf16 true
 python scripts/audit_records.py results/probes.jsonl --sample 50
 
-# Phase 1 — core-disjoint 350/75/75 manifest
+# Phase 1 — core-disjoint 1000/200/200 manifest (committed under manifests/)
 python scripts/prepare_manifest.py --config configs/experiment.yaml --seed 20260919
 chmod a-w manifests/test.jsonl
 
