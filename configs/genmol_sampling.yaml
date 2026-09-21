@@ -1,0 +1,24 @@
+# Frozen GenMol V1 remasking / decoding settings.
+# Recorded from pinned GenMol remask + generate defaults used in lead-opt style
+# fragment remasking. Do not edit vendor sources to encode these.
+checkpoint: "vendor/genmol/checkpoints/model.ckpt"
+task: remask_span
+
+# Prefer bf16 when true. On GPUs without bf16 (Pascal / GTX 1080 Ti), the
+# adapter automatically falls back to fp16. Set false for float32.
+bf16: true
+
+sampling:
+  softmax_temp: 1.2
+  randomness: 2.0
+  gamma: 0.0
+  w: 2.0
+  fix: true
+  # Number of mask tokens inserted when replacing a SAFE fragment span.
+  # GenMol remask draws Uniform{5,...,15}; we pin the midpoint for reproducibility.
+  num_insert_mask: 10
+  min_add_len: 18
+
+# Seeds are applied via random/numpy/torch before each completion.
+# Whether GenMol honors them is verified in Phase 0 and recorded in provenance.
+seed_policy: set_global_prngs

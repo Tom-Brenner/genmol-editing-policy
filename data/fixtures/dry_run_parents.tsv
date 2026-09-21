@@ -1,0 +1,15 @@
+# Local dry-run fixture parents (not from the 500-task ChEMBL manifest).
+# Each line: parent_id\tsmiles
+# Selected for likely 2–4 Murcko-pendant fragments under RDKit eligibility.
+FIXTURE001	CC(C)Cc1ccc(cc1)C(C)C(=O)O
+FIXTURE002	COc1ccc2c(c1)c(CC(=O)O)c(C)n2C(=O)c3ccc(Cl)cc3
+FIXTURE003	CC(=O)Oc1ccccc1C(=O)O
+FIXTURE004	CCc1ccc(cc1)C(=O)Nc2ccc(O)cc2
+FIXTURE005	CC(C)NCC(O)c1ccc(O)c(CO)c1
+FIXTURE006	COc1cc(CCN)ccc1O
+FIXTURE007	CC1=C(C(=O)O)N2C(=O)C(NC(=O)COc3ccccc3)C2SC1
+FIXTURE008	CN1C=NC2=C1C(=O)N(C(=O)N2C)C
+FIXTURE009	CC(C)(C)NCC(O)c1ccc(O)c(CO)c1
+FIXTURE010	CCOC(=O)C1=C(C)NC(=C(C1C(=O)OC)C(=O)OCC)C
+FIXTURE011	CCOc1ccc(cc1)Cc2c(nc3ccccc3n2)N
+FIXTURE012	Cc1ccc(cc1)S(=O)(=O)Nc2ccc(N)cc2

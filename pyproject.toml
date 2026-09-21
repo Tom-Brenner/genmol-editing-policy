@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rollout-policy"
+version = "0.1.0"
+description = "Rollout-value remasking site selection for frozen GenMol V1"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "rdkit",
+  "scikit-learn==1.2.2",
+  "pandas",
+  "pyarrow",
+  "requests",
+  "pyyaml",
+  "torch",
+  "lightning==2.5.1",
+  "numpy",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

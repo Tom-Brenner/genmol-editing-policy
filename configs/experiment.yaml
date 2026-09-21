@@ -1,0 +1,69 @@
+# Pre-registered experiment settings. Do not tune on test results.
+chembl_release: 37
+chembl_chemreps_url: "https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/releases/chembl_37/chembl_37_chemreps.txt.gz"
+chembl_chemreps_sha256: "ea6181ce8dc7af41974e35b92e1febb0c9dcbe2c62f7ccc4a5d983ac19f696e7"
+
+paths:
+  chembl_raw: "data/raw/chembl_37_chemreps.txt.gz"
+  parents_parquet: "data/processed/parents.parquet"
+  manifests_dir: "manifests"
+  artifacts_dir: "artifacts"
+  results_dir: "results"
+  genmol_checkpoint: "vendor/genmol/checkpoints/model.ckpt"
+  genmol_sampling: "configs/genmol_sampling.yaml"
+
+fingerprint:
+  kind: morgan_bit_vector
+  radius: 2                 # ECFP4
+  n_bits: 2048
+  use_chirality: false
+
+parent_filters:
+  min_heavy_atoms: 15
+  max_heavy_atoms: 45
+  min_qed: 0.30
+  max_qed: 0.85
+  min_eligible_actions: 2
+  max_eligible_actions: 4
+
+constraints:
+  min_tanimoto_to_parent: 0.50
+  max_absolute_heavy_atom_delta: 8
+  exact_core_required: true
+
+reward:
+  primary_property: qed
+  success_qed_delta: 0.05
+  reward_qed_delta_cap: 0.10
+
+rollouts:
+  labels_per_action: 8
+  test_per_selected_action: 16
+  probe_parents: 100
+  probe_completions_per_parent: 10
+
+split:
+  n_train: 350
+  n_validation: 75
+  n_test: 75
+  manifest_seed: 20260919
+
+value_model:
+  hidden_sizes: [64, 32]
+  learning_rate: 0.001
+  batch_size: 64
+  max_epochs: 200
+  patience: 20
+  huber_delta: 1.0
+  # Weight each action by 1 / (1 + reward_variance) to downweight noisy labels.
+  loss_weight: "inverse_reward_variance"
+  variance_eps: 1.0
+
+throughput_gate:
+  max_seconds_per_completion: 20.0
+  min_valid_fraction: 0.25
+  audit_sample_size: 50
+
+budget:
+  gpu_hour_cap: 180
+  terminate_spend_usd: 185

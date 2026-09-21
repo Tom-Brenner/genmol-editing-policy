@@ -1,0 +1,58 @@
+# Large / mutable experiment artifacts (checksums and metadata stay in Git)
+data/raw/**
+!data/raw/.gitkeep
+data/processed/**
+!data/processed/.gitkeep
+
+# Keep small fixtures; ignore downloaded ChEMBL molecule dumps if large
+data/fixtures/*.json
+!data/fixtures/dry_run_parents.tsv
+!data/fixtures/.gitkeep
+
+manifests/*.jsonl
+manifests/hashes.json
+manifests/seeds.json
+!manifests/.gitkeep
+
+artifacts/**
+!artifacts/.gitkeep
+!artifacts/README.md
+!artifacts/provenance.template.json
+
+results/**
+!results/.gitkeep
+!results/labels/.gitkeep
+!results/test/.gitkeep
+!results/confirmation/.gitkeep
+
+# Python / tooling
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Vendor: keep GenMol source; exclude checkpoints and nested git metadata
+vendor/genmol/.git/
+vendor/genmol/checkpoints/**
+!vendor/genmol/checkpoints/.gitkeep
+*.ckpt
+
+# Local probe leftovers
+artifacts/_*.txt
+artifacts/dry_run_report.json
+artifacts/one_molecule_local_test.json
+artifacts/throughput_report*.json
+artifacts/genmol-v1.sha256
+artifacts/genmol-v1.sha256.json

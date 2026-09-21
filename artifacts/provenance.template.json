@@ -1,0 +1,23 @@
+{
+  "status": "fill_during_phase0",
+  "vm": {
+    "region": null,
+    "machine_type": "g2-standard-4",
+    "image": null,
+    "nvidia_driver": null,
+    "cuda": null,
+    "pytorch": null,
+    "python": null
+  },
+  "genmol": {
+    "source_commit": "add09fc83b7255bd09c797e527c0f4b51f5fb7c1",
+    "checkpoint_path": "vendor/genmol/checkpoints/model.ckpt",
+    "checkpoint_sha256": null,
+    "sampling_config": "configs/genmol_sampling.yaml"
+  },
+  "chembl": {
+    "release": 37,
+    "chemreps_sha256": "ea6181ce8dc7af41974e35b92e1febb0c9dcbe2c62f7ccc4a5d983ac19f696e7"
+  },
+  "notes": "Populate nvidia-smi, pip freeze path, and checkpoint hash on the L4 VM."
+}

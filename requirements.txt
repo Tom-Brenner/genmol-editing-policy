@@ -1,0 +1,12 @@
+# Project-only dependencies (GenMol vendor requirements are separate).
+# Pin resolved versions into artifacts/pip-freeze.txt on the L4 VM.
+rdkit
+scikit-learn==1.2.2
+pandas
+pyarrow
+requests
+pyyaml
+torch
+lightning==2.5.1
+numpy
+pytest>=7.0
