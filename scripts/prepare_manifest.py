@@ -184,7 +184,13 @@ def main() -> None:
     all_rows = splits["train"] + splits["validation"] + splits["test"]
     parents_path = resolve_path(cfg["paths"]["parents_parquet"])
     ensure_dir(parents_path.parent)
-    pd.DataFrame(all_rows).to_parquet(parents_path, index=False)
+    parquet_rows = []
+    for rec in all_rows:
+        row = dict(rec)
+        row["actions"] = json.dumps(row["actions"])
+        row["action_order_keys"] = json.dumps(row["action_order_keys"])
+        parquet_rows.append(row)
+    pd.DataFrame(parquet_rows).to_parquet(parents_path, index=False)
 
     seeds = {
         "manifest_seed": seed,

@@ -20,6 +20,7 @@ artifacts/**
 !artifacts/.gitkeep
 !artifacts/README.md
 !artifacts/provenance.template.json
+!artifacts/manifest_summary.json
 
 results/**
 !results/.gitkeep
