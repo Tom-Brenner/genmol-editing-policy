@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 from rdkit import Chem
-from rdkit.Chem import AllChem, Descriptors, rdMolDescriptors
+from rdkit.Chem import Descriptors, rdFingerprintGenerator, rdMolDescriptors
 
 from rollout_policy.eligibility import EligibleAction
 from rollout_policy.graph_features import validate_action_indices
@@ -164,14 +164,15 @@ def _add_attachment_atom(names: list[str], values: list[float], atom: Chem.Atom,
     values.append(float(hybridization not in _HYBRIDIZATIONS))
 
 
+_MORGAN = rdFingerprintGenerator.GetMorganGenerator(
+    radius=2,
+    fpSize=ATTACHMENT_FP_BITS,
+    includeChirality=False,
+)
+
+
 def centered_morgan_bits(parent: Chem.Mol, atom_idx: int) -> list[float]:
-    fingerprint = AllChem.GetMorganFingerprintAsBitVect(
-        parent,
-        radius=2,
-        nBits=ATTACHMENT_FP_BITS,
-        fromAtoms=[int(atom_idx)],
-        useChirality=False,
-    )
+    fingerprint = _MORGAN.GetFingerprint(parent, fromAtoms=[int(atom_idx)])
     bits = [float(fingerprint.GetBit(i)) for i in range(ATTACHMENT_FP_BITS)]
     if len(bits) != ATTACHMENT_FP_BITS:
         raise RuntimeError("centered Morgan width drifted")
