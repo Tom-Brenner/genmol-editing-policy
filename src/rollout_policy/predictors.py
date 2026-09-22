@@ -190,10 +190,11 @@ def load_value_mlp_predictor(path: str | Path, device: torch.device | None = Non
 def load_action_predictor(cfg: dict, device: torch.device):
     """Prefer the V2 GAT checkpoint. Fall back to the locked value-model checkpoint."""
     artifacts = resolve_path(cfg["paths"]["artifacts_dir"])
-    gat_path = artifacts / "gatv2.pt"
     mlp_path = artifacts / "value_model.pt"
-    if gat_path.is_file():
-        return load_gat_predictor(gat_path, device)
+    for name in ("best.pt", "gatv2.pt"):
+        gat_path = artifacts / name
+        if gat_path.is_file():
+            return load_gat_predictor(gat_path, device)
     if mlp_path.is_file():
         return load_value_mlp_predictor(mlp_path, device)
-    raise SystemExit(f"No gatv2.pt or value_model.pt under {artifacts}")
+    raise SystemExit(f"No best.pt or value_model.pt under {artifacts}")

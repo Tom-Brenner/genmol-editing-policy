@@ -114,8 +114,8 @@ Confirm zone has `g2-standard-8` / L4 and check on-demand $/h before running.
 ```bash
 source ~/vits/switch-gcloud.sh glen
 
-export VM=genmol-rollout
-export ZONE=us-central1-a   # change if needed; must be in $REGION above
+export VM=maps-decoder-train
+export ZONE=us-west4-a   # change if needed; must be in $REGION above
 
 gcloud compute instances create $VM \
   --zone=$ZONE \
@@ -166,7 +166,7 @@ gcloud storage buckets add-iam-policy-binding gs://genmol-rollout-data \
 
 ```bash
 source ~/vits/switch-gcloud.sh glen
-export VM=genmol-rollout ZONE=us-central1-a
+export VM=maps-decoder-train ZONE=us-west4-a
 
 gcloud compute instances start $VM --zone=$ZONE   # if TERMINATED
 gcloud compute ssh $VM --zone=$ZONE
@@ -439,7 +439,7 @@ python scripts/train_gat.py --config configs/experiment_v2.yaml \
   2>&1 | tee ~/train_gat.log
 ```
 
-`src/rollout_policy/predictors.py` loads `artifacts_v2/gatv2.pt` for a later test run. `scripts/train_tabular_models.py` (tabular MLP and LightGBM) is still unwritten. Do not open `manifests_v2/test.jsonl` for model selection.
+`src/rollout_policy/predictors.py` loads `artifacts_v2/best.pt` for a later test run. `scripts/train_tabular_models.py` (tabular MLP and LightGBM) is still unwritten. Do not open `manifests_v2/test.jsonl` for model selection.
 
 ### Phase 3 — held-out test (5,000 parents, 16 completions)
 
@@ -489,7 +489,7 @@ gcloud storage rsync ~/genmol-editing-policy/manifests_v2 \
 
 ```bash
 source ~/vits/switch-gcloud.sh glen
-export VM=genmol-rollout ZONE=us-central1-a
+export VM=maps-decoder-train ZONE=us-central1-a
 
 gcloud compute instances stop   $VM --zone=$ZONE
 gcloud compute instances start  $VM --zone=$ZONE
@@ -537,7 +537,7 @@ Or scp:
 
 ```bash
 gcloud compute scp --recurse \
-  genmol-rollout:~/genmol-editing-policy/results \
+  maps-decoder-train:~/genmol-editing-policy/results \
   ~/genmol-editing-policy-gcp/results \
   --zone=$ZONE
 ```

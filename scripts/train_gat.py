@@ -271,7 +271,7 @@ def main() -> None:
     patience = int(gat_cfg.get("patience", 10))
     min_delta = float(gat_cfg.get("early_stopping_min_delta", 1e-5))
     log_every = max(1, int(schedule.get("log_every_n_steps", 100)))
-    ckpt_path = artifact_path(cfg, "gatv2.pt")
+    ckpt_path = artifact_path(cfg, "best.pt")
     best = {
         "val_binomial_nll": float("inf"),
         "validation_top1_success_rate": None,
@@ -355,6 +355,11 @@ def main() -> None:
                         labels / "validation_action_rhat.jsonl",
                     ),
                     ckpt_path,
+                )
+                print(
+                    f"saved {ckpt_path.name} epoch={epoch} "
+                    f"val_binomial_nll={held['binomial_nll']:.6f}",
+                    flush=True,
                 )
             else:
                 stale += 1
