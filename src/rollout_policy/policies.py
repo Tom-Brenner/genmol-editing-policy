@@ -33,17 +33,50 @@ def select_largest_fragment(actions: Sequence[EligibleAction]) -> EligibleAction
     )[0]
 
 
-def select_learned(
+def select_learned_index(
     actions: Sequence[EligibleAction],
     predicted_values: Sequence[float],
-) -> EligibleAction:
+) -> int:
+    """Highest score, then canonical order, then action id. Same rule as production."""
     if not actions:
         raise ValueError("no eligible actions")
     if len(actions) != len(predicted_values):
         raise ValueError("actions/values length mismatch")
-    paired = list(zip(actions, predicted_values))
-    paired.sort(key=lambda t: (-t[1], t[0].canonical_order_key, t[0].action_id))
-    return paired[0][0]
+    return min(
+        range(len(actions)),
+        key=lambda index: (
+            -float(predicted_values[index]),
+            actions[index].canonical_order_key,
+            actions[index].action_id,
+        ),
+    )
+
+
+def select_scored_index(
+    logits: Sequence[float],
+    canonical_ranks: Sequence[int],
+    action_ids: Sequence[str],
+) -> int:
+    """Same order as select_learned_index when ranks come from that canonical key."""
+    if not logits:
+        raise ValueError("no scores")
+    if not (len(logits) == len(canonical_ranks) == len(action_ids)):
+        raise ValueError("score/rank/id length mismatch")
+    return min(
+        range(len(logits)),
+        key=lambda index: (
+            -float(logits[index]),
+            int(canonical_ranks[index]),
+            action_ids[index],
+        ),
+    )
+
+
+def select_learned(
+    actions: Sequence[EligibleAction],
+    predicted_values: Sequence[float],
+) -> EligibleAction:
+    return actions[select_learned_index(actions, predicted_values)]
 
 
 def select_action(

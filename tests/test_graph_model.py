@@ -135,3 +135,61 @@ def test_cpu_inference_does_not_require_cuda():
     assert logits.shape == (1,)
     assert torch.isfinite(logits)
     assert logits.device.type == "cpu"
+
+
+def test_gat_predictor_round_trip(tmp_path):
+    import numpy as np
+    from rollout_policy.eligibility import core_mol_from_parent
+    from rollout_policy.features import (
+        FEATURE_KINDS,
+        FEATURE_NAMES,
+        FEATURE_SCHEMA_VERSION,
+        StreamingMixedFeatureScaler,
+        action_features,
+    )
+    from rollout_policy.labels import LABEL_SCHEMA_VERSION
+    from rollout_policy.predictors import GATActionPredictor, load_gat_predictor
+
+    parent_mol, actions, _graphs_unused = _graphs()
+    parent = {"parent_id": "mesitylene", "smiles": MESITYLENE}
+    core = core_mol_from_parent(parent_mol)
+    rows = np.stack([action_features(parent_mol, core, action) for action in actions])
+    scaler = StreamingMixedFeatureScaler()
+    scaler.partial_fit(np.vstack([rows, rows]))
+    scaler.finalize()
+    model = ActionGATv2(
+        node_dim=len(NODE_FEATURE_NAMES),
+        edge_dim=len(EDGE_FEATURE_NAMES),
+        global_dim=len(FEATURE_NAMES),
+        dropout=0.0,
+    )
+    model.eval()
+    live = GATActionPredictor(model, scaler, torch.device("cpu"), checkpoint_sha256="live")
+    before = live.predict_actions(parent, list(actions))
+    path = tmp_path / "gatv2.pt"
+    torch.save(
+        {
+            "model_type": "gatv2",
+            "model_state_dict": model.state_dict(),
+            "model_config": model.model_config(),
+            "node_feature_names": list(NODE_FEATURE_NAMES),
+            "edge_feature_names": list(EDGE_FEATURE_NAMES),
+            "global_feature_names": list(FEATURE_NAMES),
+            "feature_kinds": list(FEATURE_KINDS),
+            "graph_schema_version": 1,
+            "feature_schema_version": FEATURE_SCHEMA_VERSION,
+            "label_schema_version": LABEL_SCHEMA_VERSION,
+            "global_scaler_center": scaler.state_dict()["center"],
+            "global_scaler_scale": scaler.state_dict()["scale"],
+            "zero_variance_features": scaler.zero_variance,
+        },
+        path,
+    )
+    after = load_gat_predictor(path, torch.device("cpu")).predict_actions(parent, list(actions))
+    np.testing.assert_allclose(before, after, rtol=1e-6, atol=1e-7)
+    blob = torch.load(path, map_location="cpu", weights_only=False)
+    blob["feature_schema_version"] = 1
+    bad = tmp_path / "bad.pt"
+    torch.save(blob, bad)
+    with pytest.raises(ValueError):
+        load_gat_predictor(bad, torch.device("cpu"))

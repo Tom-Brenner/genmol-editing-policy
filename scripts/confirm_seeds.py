@@ -10,15 +10,11 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from rdkit import Chem
-from sklearn.preprocessing import StandardScaler
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from rollout_policy.dry_run import action_from_dict
-from rollout_policy.eligibility import EligibleAction, core_mol_from_parent
-from rollout_policy.features import action_features
 from rollout_policy.genmol_adapter import FrozenGenMol
 from rollout_policy.generate import generate_action_rollouts
 from rollout_policy.io import (
@@ -30,39 +26,9 @@ from rollout_policy.io import (
     resolve_path,
     write_json,
 )
-from rollout_policy.model import ValueMLP
 from rollout_policy.policies import select_action
+from rollout_policy.predictors import load_action_predictor
 from rollout_policy.scoring import parent_success
-
-
-def load_value_model(ckpt_path: Path, device: torch.device):
-    blob = torch.load(ckpt_path, map_location=device)
-    model = ValueMLP(blob["n_features"], hidden_sizes=tuple(blob["hidden_sizes"]))
-    model.load_state_dict(blob["model_state_dict"])
-    model.to(device)
-    model.eval()
-    scaler = StandardScaler()
-    scaler.mean_ = np.asarray(blob["scaler_mean"], dtype=np.float64)
-    scaler.scale_ = np.asarray(blob["scaler_scale"], dtype=np.float64)
-    scaler.n_features_in_ = len(blob["scaler_mean"])
-    return model, scaler
-
-
-def predict_values(model, scaler, parent: dict, actions: list[EligibleAction], device) -> list[float]:
-    mol = Chem.MolFromSmiles(parent["smiles"])
-    core = core_mol_from_parent(mol)
-    feats = []
-    for action in actions:
-        frag = Chem.MolFromSmiles(action.fragment_smiles)
-        feats.append(
-            action_features(
-                mol, core, frag, action.bond_type, action.is_ring, action.is_terminal
-            )
-        )
-    x = scaler.transform(np.stack(feats).astype(np.float32)).astype(np.float32)
-    with torch.no_grad():
-        pred = model(torch.from_numpy(x).to(device)).cpu().numpy()
-    return [float(v) for v in pred]
 
 
 def paired_bootstrap_ci(diffs: np.ndarray, *, seed: int, n_boot: int = 10000) -> dict:
@@ -111,9 +77,7 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model, scaler = load_value_model(
-        resolve_path(cfg["paths"]["artifacts_dir"]) / "value_model.pt", device
-    )
+    predictor = load_action_predictor(cfg, device)
     generator = FrozenGenMol.from_configs(cfg)
 
     if selections_path.exists():
@@ -124,7 +88,7 @@ def main() -> None:
         selections = []
         for parent in test_parents:
             actions = [action_from_dict(a) for a in parent["actions"]]
-            preds = predict_values(model, scaler, parent, actions, device)
+            preds = [float(value) for value in predictor.predict_actions(parent, actions)]
             for policy in args.policies:
                 chosen = select_action(
                     policy,

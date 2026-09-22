@@ -6,7 +6,12 @@ from pathlib import Path
 
 from rollout_policy.eligibility import EligibleAction
 from rollout_policy.io import append_jsonl, existing_record_keys, load_jsonl, make_generation_record
-from rollout_policy.policies import select_largest_fragment, select_learned, select_random
+from rollout_policy.policies import (
+    select_largest_fragment,
+    select_learned,
+    select_random,
+    select_scored_index,
+)
 
 
 def _action(action_id: str, heavy: int, order: tuple) -> EligibleAction:
@@ -69,6 +74,22 @@ def test_policy_selection_deterministic():
     assert largest.action_id == "a1"  # tie on heavy atoms → canonical order
     learned = select_learned(actions, [0.1, 0.2, 0.2])
     assert learned.action_id == "a1"  # tie on value → canonical order
+    lexical_vs_canonical = [
+        _action("a_z", 1, (0, "first")),
+        _action("a_a", 1, (1, "second")),
+    ]
+    assert select_learned(lexical_vs_canonical, [0.5, 0.5]).action_id == "a_z"
+    ordered = sorted(
+        lexical_vs_canonical,
+        key=lambda action: (action.canonical_order_key, action.action_id),
+    )
+    ranks = {action.action_id: rank for rank, action in enumerate(ordered)}
+    picked = select_scored_index(
+        [0.5, 0.5],
+        [ranks["a_z"], ranks["a_a"]],
+        ["a_z", "a_a"],
+    )
+    assert lexical_vs_canonical[picked].action_id == "a_z"
     r1 = select_random(actions, parent_id="p", seed=7)
     r2 = select_random(actions, parent_id="p", seed=7)
     assert r1.action_id == r2.action_id

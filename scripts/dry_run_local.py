@@ -157,13 +157,12 @@ def main() -> None:
         if lab["parent_id"] not in manifest_train:
             continue
         parent = manifest_train[lab["parent_id"]]
-        action = next(a for a in parent["actions"] if a["action_id"] == lab["action_id"])
+        action = action_from_dict(
+            next(a for a in parent["actions"] if a["action_id"] == lab["action_id"])
+        )
         mol = Chem.MolFromSmiles(parent["smiles"])
         core = core_mol_from_parent(mol)
-        frag = Chem.MolFromSmiles(action["fragment_smiles"])
-        feats = action_features(
-            mol, core, frag, action["bond_type"], action["is_ring"], action["is_terminal"]
-        )
+        feats = action_features(mol, core, action)
         train_rows.append((feats, lab["rhat"], lab["reward_variance"]))
 
     if not train_rows:
@@ -213,17 +212,7 @@ def main() -> None:
         mol = Chem.MolFromSmiles(parent["smiles"])
         core = core_mol_from_parent(mol)
         feats = np.stack(
-            [
-                action_features(
-                    mol,
-                    core,
-                    Chem.MolFromSmiles(a.fragment_smiles),
-                    a.bond_type,
-                    a.is_ring,
-                    a.is_terminal,
-                )
-                for a in actions
-            ]
+            [action_features(mol, core, action) for action in actions]
         ).astype(np.float32)
         with torch.no_grad():
             preds = (

@@ -30,7 +30,7 @@ The locked 1,400-parent protocol is finished. Experiment V2 (`plan.md`, `configs
 
 The V2 audit and the 30,000 / 5,000 / 5,000 manifest are already on the GPU VM. `manifests_v2/test.jsonl` is frozen (`chmod a-w`).
 
-**Next step on the GPU VM:** §6b pytest if it has not already passed, then §7 Phase 2 label generation (`generate_labels.py --config configs/experiment_v2.yaml`). Those labels supervise the V2 candidates in `experiment-v2-handoff.md`: an action-conditioned GATv2, a new regularized tabular MLP, and LightGBM regressor and ranker. `scripts/train_value.py` is the locked protocol’s MLP and is not a V2 training command. Do not rebuild either manifest. Do not create a second conda env. Do not re-download chemreps or the GenMol checkpoint. Create a VM (§3) only when this env does not exist anywhere.
+**Next step on the GPU VM:** `git pull`, then `scripts/audit_exact_cores.py` on the labels already written. Do not rerun `prepare_manifest.py` and do not regenerate completions. After that audit passes, `scripts/train_gat.py` trains the attention model from a sharded graph cache. Do not create a second conda env. Do not re-download chemreps or the GenMol checkpoint.
 
 Two manifests, two directories:
 
@@ -45,7 +45,7 @@ Two manifests, two directories:
 | `genmol-rollout` env | Python 3.10, GenMol requirements, editable GenMol + this repo. Reuse it. |
 | ChEMBL 37 chemreps | `data/raw/chembl_37_chemreps.txt.gz` on the VM (~279 MB). The V2 manifest was drawn from this file. Do not download another copy. |
 | GenMol V1 checkpoint | `vendor/genmol/checkpoints/model.ckpt`. Leave it in place. |
-| V2 still to run | `pytest` if not already green, then Phase 2 labels. After that, fit the GATv2, the regularized tabular MLP, and the two LightGBM models on `results_v2/labels/`. |
+| V2 still to run | `git pull`, then `scripts/audit_exact_cores.py` on the finished labels. If it exits 0, `scripts/train_gat.py`. Do not rerun `prepare_manifest.py`. |
 
 ---
 
@@ -423,14 +423,23 @@ After the labels exist, fit the four models in `experiment-v2-handoff.md` and `p
 | `lightgbm_regressor` | Boosted tree. Pointwise regression on `n_successes / n_trials`, sample weight `n_trials`. LightGBM is the tree library pinned in the handoff (same role as XGBoost). | `scripts/train_tabular_models.py` |
 | `lightgbm_ranker` | LightGBM LambdaRank over actions of one parent. Scores are ranks, not probabilities. | `scripts/train_tabular_models.py` |
 
-`scripts/train_gat.py` is the GATv2 attention trainer. It reads the label counts, rebuilds one graph per manifest action, and writes `artifacts_v2/gatv2.pt`. Run it after both label files exist:
+Label generation for train and validation is finished. Leave those JSONL files in place. The next CPU job replays scaffold identity on all 40,000 manifest parents and exact-core flags on the stored completions. It does not call GenMol.
+
+```bash
+python scripts/audit_exact_cores.py --config configs/experiment_v2.yaml --max-records 10000
+# timing only; then the full audit, which must see 683448 records:
+python scripts/audit_exact_cores.py --config configs/experiment_v2.yaml --workers 4 \
+  2>&1 | tee ~/audit_exact_cores.log
+```
+
+Train only if that command exits 0. `scripts/train_gat.py` then builds `artifacts_v2/graph_cache/schema_v2/` (one shard in memory at a time) and checkpoints on validation binomial NLL. Top-1 success is reported beside that checkpoint.
 
 ```bash
 python scripts/train_gat.py --config configs/experiment_v2.yaml \
   2>&1 | tee ~/train_gat.log
 ```
 
-`scripts/train_tabular_models.py` and `src/rollout_policy/predictors.py` are still the remaining handoff pieces (tabular MLP and the two LightGBM models, then a shared loader for the test). Label generation can start before those exist.
+`src/rollout_policy/predictors.py` loads `artifacts_v2/gatv2.pt` for a later test run. `scripts/train_tabular_models.py` (tabular MLP and LightGBM) is still unwritten. Do not open `manifests_v2/test.jsonl` for model selection.
 
 ### Phase 3 — held-out test (5,000 parents, 16 completions)
 

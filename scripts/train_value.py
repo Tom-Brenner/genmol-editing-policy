@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader, TensorDataset
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from rollout_policy.dry_run import action_from_dict
 from rollout_policy.eligibility import core_mol_from_parent
 from rollout_policy.features import FEATURE_NAMES, action_features
 from rollout_policy.io import (
@@ -41,20 +42,14 @@ def _load_action_table(split: str, cfg: dict) -> list[dict]:
     rows = []
     for lab in labels:
         parent = manifest[lab["parent_id"]]
-        action = next(a for a in parent["actions"] if a["action_id"] == lab["action_id"])
-        mol = Chem.MolFromSmiles(parent["smiles"])
-        core = core_mol_from_parent(mol)
-        frag = Chem.MolFromSmiles(action["fragment_smiles"])
-        if mol is None or frag is None:
-            continue
-        feats = action_features(
-            mol,
-            core,
-            frag,
-            action["bond_type"],
-            bool(action["is_ring"]),
-            bool(action["is_terminal"]),
+        action = action_from_dict(
+            next(a for a in parent["actions"] if a["action_id"] == lab["action_id"])
         )
+        mol = Chem.MolFromSmiles(parent["smiles"])
+        if mol is None:
+            raise ValueError(f"invalid parent SMILES for {lab['parent_id']}")
+        core = core_mol_from_parent(mol)
+        feats = action_features(mol, core, action)
         rows.append(
             {
                 "parent_id": lab["parent_id"],
@@ -235,9 +230,10 @@ def main() -> None:
         def random_select(rows):
             return rows[int(rng.integers(0, len(rows)))]
 
+        heavy_index = FEATURE_NAMES.index("fragment_heavy_atoms")
+
         def largest_select(rows):
-            # Approximate via fragment heavy-atom feature index 6.
-            return max(rows, key=lambda r: (r["features"][6], r["action_id"]))
+            return max(rows, key=lambda r: (r["features"][heavy_index], r["action_id"]))
 
         report = {
             "best": best,
