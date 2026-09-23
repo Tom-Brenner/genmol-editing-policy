@@ -69,7 +69,7 @@ def iter_action_examples(manifest_path: Path, label_path: Path) -> list[ActionEx
         raise ValueError("refusing to open the test manifest")
     if not label_path.is_file():
         raise SystemExit(
-            f"Missing {label_path}. Run generate_labels.py for this split before train_gat.py."
+            f"Missing {label_path}. Run generate_labels.py for this split before training."
         )
     parents = {row["parent_id"]: row for row in iter_jsonl(manifest_path)}
     ranks = {

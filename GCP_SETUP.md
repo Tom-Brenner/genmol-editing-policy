@@ -439,11 +439,11 @@ python scripts/train_gat.py --config configs/experiment_v2.yaml \
   2>&1 | tee ~/train_gat.log
 ```
 
-`src/rollout_policy/predictors.py` loads `artifacts_v2/best.pt` for a later test run. `scripts/train_tabular_models.py` (tabular MLP and LightGBM) is still unwritten. Do not open `manifests_v2/test.jsonl` for model selection.
+`src/rollout_policy/predictors.py` loads `artifacts_v2/best.pt` for the GATv2 test and confirmation. The tabular trainer does not open `manifests_v2/test.jsonl`.
 
 ### Phase 3 — held-out test (5,000 parents, 16 completions)
 
-Open `manifests_v2/test.jsonl` once, after one learned policy is frozen from the validation comparison above. The test is that policy plus random and largest-fragment, 16 completions each. The scorer has to be the frozen GATv2, tabular MLP, or LightGBM checkpoint. `scripts/evaluate_test.py` still loads the locked `ValueMLP` from `value_model.pt`, so it is not the V2 test command until it calls the shared predictor interface. When it does, the run is:
+Phase 3 is done. It opened `manifests_v2/test.jsonl` once and scored the frozen GATv2 checkpoint (`artifacts_v2/best.pt`) plus random and largest-fragment, 16 completions each. Do not run it again: a second pass rewrites `results_v2/test/selections.json` and `results_v2/test/metrics.json`. The command that produced the locked files was:
 
 ```bash
 python scripts/evaluate_test.py --config configs/experiment_v2.yaml --rollouts 16 \
@@ -455,13 +455,48 @@ Metrics then land in `results_v2/test` and `artifacts_v2/test_metrics.json`.
 
 ### Phase 4 — seed confirmation
 
-Repeat the chosen learned policy and the stronger baseline with 16 new samples and no further fitting. `scripts/confirm_seeds.py` likewise still loads the locked MLP, so pass `--config configs/experiment_v2.yaml` only after it scores the frozen V2 checkpoint:
+Repeat the GATv2 policy and largest-fragment with 16 new samples and no further fitting. `confirm_seeds.py` reuses `results_v2/test/selections.json` and loads `artifacts_v2/best.pt`. It writes `results_v2/confirmation/`, not the Phase 3 files:
 
 ```bash
 python scripts/confirm_seeds.py --config configs/experiment_v2.yaml \
   --policies learned largest_fragment --rollouts 16 \
   2>&1 | tee ~/confirm.log
 ```
+
+### Tabular ablation — MLP and LightGBM
+
+Random and largest-fragment do not depend on the learned checkpoint. Their Phase 3 completions stay in `results_v2/test/random.jsonl` and `results_v2/test/largest_fragment.jsonl`. Phase 4 largest-fragment stays in `results_v2/confirmation/largest_fragment.jsonl`. `scripts/evaluate_ablation.py` reads those files and does not write them. A new completion is sampled only when the tabular model picks a cut that is not already stored for the same phase, parent, action, candidate index, and seed (`test_base_seed` or `confirmation_base_seed`, 16 rollouts).
+
+Train first. This does not open the test manifest. Checkpoints land in `artifacts_v2/shallow_mlp.pt` and `artifacts_v2/lightgbm_regressor.txt` with `lightgbm_regressor.json`.
+
+```bash
+python scripts/train_tabular_models.py --config configs/experiment_v2.yaml \
+  2>&1 | tee ~/train_tabular.log
+```
+
+After Phase 3 has all 5,000 parents in both baseline files, score the test schedule:
+
+```bash
+python scripts/evaluate_ablation.py --config configs/experiment_v2.yaml \
+  --model shallow_mlp --schedule test --rollouts 16 \
+  2>&1 | tee ~/ablation_mlp_test.log
+python scripts/evaluate_ablation.py --config configs/experiment_v2.yaml \
+  --model lightgbm_regressor --schedule test --rollouts 16 \
+  2>&1 | tee ~/ablation_lgb_test.log
+```
+
+After Phase 4 has all 5,000 parents in `results_v2/confirmation/largest_fragment.jsonl`, repeat with the confirmation seed:
+
+```bash
+python scripts/evaluate_ablation.py --config configs/experiment_v2.yaml \
+  --model shallow_mlp --schedule confirmation --rollouts 16 \
+  2>&1 | tee ~/ablation_mlp_confirm.log
+python scripts/evaluate_ablation.py --config configs/experiment_v2.yaml \
+  --model lightgbm_regressor --schedule confirmation --rollouts 16 \
+  2>&1 | tee ~/ablation_lgb_confirm.log
+```
+
+Metrics are `results_v2/ablation/<model>/{test,confirmation}_metrics.json` and `artifacts_v2/ablation_<model>_<schedule>_metrics.json`. The GATv2 Phase 3 report stays the primary test. These runs are the feature ablation against the same molecules and seeds.
 
 - **Detach:** `Ctrl-b d`
 - **Reattach:** `tmux attach -t genmol`
@@ -476,11 +511,11 @@ gcloud storage rsync ~/genmol-editing-policy/artifacts \
 gcloud storage rsync ~/genmol-editing-policy/manifests \
   gs://genmol-rollout-data/manifests --recursive
 gcloud storage rsync ~/genmol-editing-policy/results_v2 \
-  gs://genmol-rollout-data/results_v2 --recursive
+  gs://glen-train-data/results_v2 --recursive
 gcloud storage rsync ~/genmol-editing-policy/artifacts_v2 \
-  gs://genmol-rollout-data/artifacts_v2 --recursive
+  gs://glen-train-data/artifacts_v2 --recursive
 gcloud storage rsync ~/genmol-editing-policy/manifests_v2 \
-  gs://genmol-rollout-data/manifests_v2 --recursive
+  gs://glen-train-data/manifests_v2 --recursive
 ```
 
 ---

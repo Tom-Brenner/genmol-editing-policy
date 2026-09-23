@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import torch
@@ -27,7 +29,7 @@ from rollout_policy.graph_features import (
 )
 from rollout_policy.io import resolve_path
 from rollout_policy.labels import LABEL_SCHEMA_VERSION
-from rollout_policy.model import ValueMLP
+from rollout_policy.model import TabularMLP, ValueMLP
 from rollout_policy.model_gat import ActionGATv2
 
 
@@ -185,6 +187,149 @@ def load_value_mlp_predictor(path: str | Path, device: torch.device | None = Non
         list(blob["feature_names"]),
         device,
     )
+
+
+class TabularMLPPredictor:
+    """Schema-v2 shallow MLP. Scores are success probabilities."""
+
+    def __init__(
+        self,
+        model: TabularMLP,
+        scaler: StreamingMixedFeatureScaler,
+        device: torch.device,
+        *,
+        checkpoint_sha256: str,
+    ):
+        self.model = model
+        self.scaler = scaler
+        self.device = device
+        self.model_type = "shallow_mlp"
+        self.feature_schema_version = FEATURE_SCHEMA_VERSION
+        self.checkpoint_sha256 = checkpoint_sha256
+        self.model.eval()
+
+    def predict_actions(self, parent: dict, actions: list[EligibleAction]) -> np.ndarray:
+        mol = Chem.MolFromSmiles(parent["smiles"])
+        if mol is None:
+            raise ValueError(f"invalid parent SMILES for {parent.get('parent_id')}")
+        core = core_mol_from_parent(mol)
+        rows = [
+            self.scaler.transform(action_features(mol, core, action)) for action in actions
+        ]
+        batch = torch.from_numpy(np.stack(rows).astype(np.float32)).to(self.device)
+        with torch.no_grad():
+            logits = self.model(batch).view(-1)
+            probabilities = torch.sigmoid(logits).detach().cpu().numpy()
+        if probabilities.shape != (len(actions),):
+            raise RuntimeError(
+                f"expected {len(actions)} probabilities, got {tuple(probabilities.shape)}"
+            )
+        return probabilities.astype(np.float64)
+
+
+class LightGBMRegressorPredictor:
+    """Pointwise LightGBM. Scores are unclipped so ties are not created by clipping."""
+
+    def __init__(
+        self,
+        booster: Any,
+        *,
+        num_iteration: int,
+        checkpoint_sha256: str,
+    ):
+        self.booster = booster
+        self.num_iteration = int(num_iteration)
+        self.model_type = "lightgbm_regressor"
+        self.feature_schema_version = FEATURE_SCHEMA_VERSION
+        self.checkpoint_sha256 = checkpoint_sha256
+
+    def predict_actions(self, parent: dict, actions: list[EligibleAction]) -> np.ndarray:
+        mol = Chem.MolFromSmiles(parent["smiles"])
+        if mol is None:
+            raise ValueError(f"invalid parent SMILES for {parent.get('parent_id')}")
+        core = core_mol_from_parent(mol)
+        rows = np.stack(
+            [action_features(mol, core, action) for action in actions]
+        ).astype(np.float64)
+        scores = np.asarray(
+            self.booster.predict(rows, num_iteration=self.num_iteration),
+            dtype=np.float64,
+        ).reshape(-1)
+        if scores.shape != (len(actions),):
+            raise RuntimeError(
+                f"expected {len(actions)} scores, got {tuple(scores.shape)}"
+            )
+        return scores
+
+
+def load_tabular_mlp_predictor(path: str | Path, device: torch.device | None = None) -> TabularMLPPredictor:
+    resolved = resolve_path(path)
+    device = device or torch.device("cpu")
+    blob = torch.load(resolved, map_location=device, weights_only=False)
+    if blob.get("model_type") != "shallow_mlp":
+        raise ValueError(f"{resolved} is not a shallow_mlp checkpoint")
+    _require_exact(blob["feature_names"], FEATURE_NAMES, "features")
+    if int(blob["feature_schema_version"]) != FEATURE_SCHEMA_VERSION:
+        raise ValueError("checkpoint feature schema version does not match")
+    if int(blob.get("label_schema_version", 0)) != LABEL_SCHEMA_VERSION:
+        raise ValueError("checkpoint label schema version does not match")
+    if list(blob.get("feature_kinds", FEATURE_KINDS)) != list(FEATURE_KINDS):
+        raise ValueError("checkpoint feature kinds do not match")
+    config = blob["model_config"]
+    model = TabularMLP(
+        n_features=int(config["n_features"]),
+        hidden_sizes=tuple(int(width) for width in config["hidden_sizes"]),
+        dropout=float(config["dropout"]),
+    )
+    model.load_state_dict(blob["model_state_dict"])
+    model.to(device)
+    return TabularMLPPredictor(
+        model,
+        StreamingMixedFeatureScaler.from_state(blob["scaler"]),
+        device,
+        checkpoint_sha256=_file_sha256(resolved),
+    )
+
+
+def load_lightgbm_regressor_predictor(path: str | Path) -> LightGBMRegressorPredictor:
+    import lightgbm
+
+    resolved = resolve_path(path)
+    sidecar = resolved.with_suffix(".json")
+    if not sidecar.is_file():
+        raise SystemExit(f"Missing LightGBM sidecar {sidecar}")
+    blob = json.loads(sidecar.read_text(encoding="utf-8"))
+    if blob.get("model_type") != "lightgbm_regressor":
+        raise ValueError(f"{sidecar} is not a lightgbm_regressor sidecar")
+    _require_exact(blob["feature_names"], FEATURE_NAMES, "features")
+    if int(blob["feature_schema_version"]) != FEATURE_SCHEMA_VERSION:
+        raise ValueError("checkpoint feature schema version does not match")
+    if int(blob.get("label_schema_version", 0)) != LABEL_SCHEMA_VERSION:
+        raise ValueError("checkpoint label schema version does not match")
+    if blob.get("scaled_features"):
+        raise ValueError("lightgbm_regressor checkpoint was fit on scaled features")
+    booster = lightgbm.Booster(model_file=str(resolved))
+    return LightGBMRegressorPredictor(
+        booster,
+        num_iteration=int(blob.get("best_iteration") or 0),
+        checkpoint_sha256=_file_sha256(resolved),
+    )
+
+
+def load_ablation_predictor(cfg: dict, model_name: str, device: torch.device):
+    """Load a frozen tabular checkpoint. Does not replace the GATv2 test loader."""
+    artifacts = resolve_path(cfg["paths"]["artifacts_dir"])
+    if model_name == "shallow_mlp":
+        path = artifacts / "shallow_mlp.pt"
+        if not path.is_file():
+            raise SystemExit(f"Missing {path}. Run scripts/train_tabular_models.py first.")
+        return load_tabular_mlp_predictor(path, device)
+    if model_name == "lightgbm_regressor":
+        path = artifacts / "lightgbm_regressor.txt"
+        if not path.is_file():
+            raise SystemExit(f"Missing {path}. Run scripts/train_tabular_models.py first.")
+        return load_lightgbm_regressor_predictor(path)
+    raise SystemExit(f"ablation models are shallow_mlp and lightgbm_regressor, not {model_name!r}")
 
 
 def load_action_predictor(cfg: dict, device: torch.device):
