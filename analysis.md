@@ -51,7 +51,7 @@ The complete analysis requires:
 - `manifests_v2/test.jsonl`
 - `manifests_v2/seeds.json`
 - `results_v2/labels/validation_action_rhat.jsonl`
-- `artifacts_v2/best.pt`
+- `artifacts_v2/gatv2.pt`
 - `artifacts_v2/shallow_mlp.pt`
 - `artifacts_v2/lightgbm_regressor.txt`
 - `artifacts_v2/lightgbm_regressor.json`

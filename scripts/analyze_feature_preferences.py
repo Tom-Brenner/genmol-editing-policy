@@ -72,7 +72,7 @@ def required_inputs(config_path: Path) -> dict[str, Path]:
         "test_manifest": manifests / "test.jsonl",
         "seed_manifest": manifests / "seeds.json",
         "validation_action_labels": results / "labels" / "validation_action_rhat.jsonl",
-        "gat_checkpoint": artifacts / "best.pt",
+        "gat_checkpoint": artifacts / "gatv2.pt",
         "shallow_mlp_checkpoint": artifacts / "shallow_mlp.pt",
         "lightgbm_model": artifacts / "lightgbm_regressor.txt",
         "lightgbm_sidecar": artifacts / "lightgbm_regressor.json",
