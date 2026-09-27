@@ -1,0 +1,353 @@
+{
+  "device": "cpu",
+  "interpretation": {
+    "permutation": "Positive top-1 success loss means the model relied on that group for validation action ranking. Correlated groups share credit.",
+    "preferences": "Selected-minus-alternative contrasts describe association, not a causal effect of changing a chemical descriptor."
+  },
+  "n_test_actions": 12063,
+  "n_test_parents": 5000,
+  "n_validation_actions": 12313,
+  "n_validation_parents": 5000,
+  "permutation_repeats": 20,
+  "seed": 20261009,
+  "selection_archive_verification": {
+    "gatv2": {
+      "archived_checkpoint_sha256": "43bcd5c13225c62f7b337605beb6f5e2e07a8241eca03a1d295ab72edf74a043",
+      "checkpoint_sha256_match": true,
+      "compared": 5000,
+      "exact_matches": 4977,
+      "first_hard_mismatches": [],
+      "first_soft_mismatches": [
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.012462439946830273,
+          "parent_id": "CHEMBL69195",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.010426186956465244,
+          "score_margin": 9.810645133256912e-05,
+          "score_recomputed": 0.010524293407797813
+        },
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.022538285702466965,
+          "parent_id": "CHEMBL121009",
+          "recomputed": "a0_0",
+          "score_archived_action": 0.022243943065404892,
+          "score_margin": 0.0011637303978204727,
+          "score_recomputed": 0.023407673463225365
+        },
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.09712597727775574,
+          "parent_id": "CHEMBL105892",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.06970694661140442,
+          "score_margin": 0.0290493443608284,
+          "score_recomputed": 0.09875629097223282
+        },
+        {
+          "archived": "a0_1",
+          "archived_predicted_value": 0.4877851605415344,
+          "parent_id": "CHEMBL111929",
+          "recomputed": "a1_2",
+          "score_archived_action": 0.43373438715934753,
+          "score_margin": 0.0017091035842895508,
+          "score_recomputed": 0.4354434907436371
+        },
+        {
+          "archived": "a2_3",
+          "archived_predicted_value": 0.10743305832147598,
+          "parent_id": "CHEMBL77440",
+          "recomputed": "a1_2",
+          "score_archived_action": 0.09173113107681274,
+          "score_margin": 0.0017538964748382568,
+          "score_recomputed": 0.093485027551651
+        },
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.010485697537660599,
+          "parent_id": "CHEMBL69455",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.008360355161130428,
+          "score_margin": 0.002946600317955017,
+          "score_recomputed": 0.011306955479085445
+        },
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.18224337697029114,
+          "parent_id": "CHEMBL10218",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.17692886292934418,
+          "score_margin": 0.0074922144412994385,
+          "score_recomputed": 0.18442107737064362
+        },
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.4301135540008545,
+          "parent_id": "CHEMBL3310987",
+          "recomputed": "a4_5",
+          "score_archived_action": 0.4324210286140442,
+          "score_margin": 0.0171414315700531,
+          "score_recomputed": 0.4495624601840973
+        },
+        {
+          "archived": "a3_4",
+          "archived_predicted_value": 0.05951422452926636,
+          "parent_id": "CHEMBL23123",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.050218045711517334,
+          "score_margin": 0.008974477648735046,
+          "score_recomputed": 0.05919252336025238
+        },
+        {
+          "archived": "a2_3",
+          "archived_predicted_value": 0.14682132005691528,
+          "parent_id": "CHEMBL39780",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.1301436871290207,
+          "score_margin": 0.02148646116256714,
+          "score_recomputed": 0.15163014829158783
+        }
+      ],
+      "hard_mismatches": 0,
+      "loaded_checkpoint_sha256": "43bcd5c13225c62f7b337605beb6f5e2e07a8241eca03a1d295ab72edf74a043",
+      "max_soft_margin": 0.08856081962585449,
+      "min_hard_margin": null,
+      "mismatch_rate": 0.0046,
+      "near_tie_atol": 0.0001,
+      "soft_mismatch_rate": 0.01,
+      "soft_near_tie_mismatches": 23
+    },
+    "lightgbm_regressor": {
+      "archived_checkpoint_sha256": "476321504e781bc7fbddc7e522f454455d6a1389e9c57055e31a4e6655410c49",
+      "checkpoint_sha256_match": true,
+      "compared": 5000,
+      "exact_matches": 4988,
+      "first_hard_mismatches": [],
+      "first_soft_mismatches": [
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.07453027825906998,
+          "parent_id": "CHEMBL48454",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.07642441066174484,
+          "score_margin": 0.002192600477030751,
+          "score_recomputed": 0.07861701113877559
+        },
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.07987294297891294,
+          "parent_id": "CHEMBL1163488",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.07908329500989388,
+          "score_margin": 0.0060904724245213065,
+          "score_recomputed": 0.08517376743441518
+        },
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.18695320419142505,
+          "parent_id": "CHEMBL86440",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.16760613518383746,
+          "score_margin": 0.023068572835171303,
+          "score_recomputed": 0.19067470801900877
+        },
+        {
+          "archived": "a0_1",
+          "archived_predicted_value": 0.06892939676364308,
+          "parent_id": "CHEMBL24587",
+          "recomputed": "a2_3",
+          "score_archived_action": 0.061837365463885345,
+          "score_margin": 0.005028880060373948,
+          "score_recomputed": 0.0668662455242593
+        },
+        {
+          "archived": "a2_3",
+          "archived_predicted_value": 0.3059453589809419,
+          "parent_id": "CHEMBL74129",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.2997123709379768,
+          "score_margin": 0.009612265879088089,
+          "score_recomputed": 0.3093246368170649
+        },
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.18733926395694797,
+          "parent_id": "CHEMBL119388",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.18733926395694797,
+          "score_margin": 0.0006674706516930917,
+          "score_recomputed": 0.18800673460864106
+        },
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.014128494641908495,
+          "parent_id": "CHEMBL44044",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.004975094388016568,
+          "score_margin": 0.0029160239193739106,
+          "score_recomputed": 0.007891118307390478
+        },
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": -0.01076844908355863,
+          "parent_id": "CHEMBL43291",
+          "recomputed": "a0_1",
+          "score_archived_action": -0.014199187065347335,
+          "score_margin": 0.007280040185365857,
+          "score_recomputed": -0.0069191468799814785
+        },
+        {
+          "archived": "a0_1",
+          "archived_predicted_value": 0.640792105859298,
+          "parent_id": "CHEMBL66611",
+          "recomputed": "a1_2",
+          "score_archived_action": 0.6273447969125003,
+          "score_margin": 0.007376491505320493,
+          "score_recomputed": 0.6347212884178208
+        },
+        {
+          "archived": "a2_3",
+          "archived_predicted_value": 0.00714539653400384,
+          "parent_id": "CHEMBL25620",
+          "recomputed": "a3_4",
+          "score_archived_action": 0.000794415403655431,
+          "score_margin": 0.0061472931060772545,
+          "score_recomputed": 0.006941708509732685
+        }
+      ],
+      "hard_mismatches": 0,
+      "loaded_checkpoint_sha256": "476321504e781bc7fbddc7e522f454455d6a1389e9c57055e31a4e6655410c49",
+      "max_soft_margin": 0.023068572835171303,
+      "min_hard_margin": null,
+      "mismatch_rate": 0.0024,
+      "near_tie_atol": 0.0001,
+      "soft_mismatch_rate": 0.01,
+      "soft_near_tie_mismatches": 12
+    },
+    "shallow_mlp": {
+      "archived_checkpoint_sha256": "62d7a653d56cb10a20e12c93f0e33fa03636c138294ed2b1f031fabb114e044f",
+      "checkpoint_sha256_match": true,
+      "compared": 5000,
+      "exact_matches": 4963,
+      "first_hard_mismatches": [],
+      "first_soft_mismatches": [
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.0007955718319863081,
+          "parent_id": "CHEMBL68157",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.0006396427052095532,
+          "score_margin": 3.815977834165096e-05,
+          "score_recomputed": 0.0006778024835512042
+        },
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.06392229348421097,
+          "parent_id": "CHEMBL105892",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.03172939643263817,
+          "score_margin": 0.01168208196759224,
+          "score_recomputed": 0.04341147840023041
+        },
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.12151741981506348,
+          "parent_id": "CHEMBL66292",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.11754010617733002,
+          "score_margin": 0.005485817790031433,
+          "score_recomputed": 0.12302592396736145
+        },
+        {
+          "archived": "a2_3",
+          "archived_predicted_value": 0.7058156728744507,
+          "parent_id": "CHEMBL45071",
+          "recomputed": "a1_2",
+          "score_archived_action": 0.6686053276062012,
+          "score_margin": 0.007560312747955322,
+          "score_recomputed": 0.6761656403541565
+        },
+        {
+          "archived": "a2_3",
+          "archived_predicted_value": 0.36410820484161377,
+          "parent_id": "CHEMBL128318",
+          "recomputed": "a1_2",
+          "score_archived_action": 0.37242817878723145,
+          "score_margin": 0.13561606407165527,
+          "score_recomputed": 0.5080442428588867
+        },
+        {
+          "archived": "a2_3",
+          "archived_predicted_value": 0.4636134207248688,
+          "parent_id": "CHEMBL128913",
+          "recomputed": "a1_2",
+          "score_archived_action": 0.43998223543167114,
+          "score_margin": 0.06806200742721558,
+          "score_recomputed": 0.5080442428588867
+        },
+        {
+          "archived": "a2_3",
+          "archived_predicted_value": 0.36410820484161377,
+          "parent_id": "CHEMBL130828",
+          "recomputed": "a1_2",
+          "score_archived_action": 0.37242817878723145,
+          "score_margin": 0.13561606407165527,
+          "score_recomputed": 0.5080442428588867
+        },
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.7242237329483032,
+          "parent_id": "CHEMBL8771",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.7045156359672546,
+          "score_margin": 0.003490626811981201,
+          "score_recomputed": 0.7080062627792358
+        },
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.16355113685131073,
+          "parent_id": "CHEMBL87275",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.12872864305973053,
+          "score_margin": 0.03943139314651489,
+          "score_recomputed": 0.16816003620624542
+        },
+        {
+          "archived": "a1_2",
+          "archived_predicted_value": 0.2677439749240875,
+          "parent_id": "CHEMBL28616",
+          "recomputed": "a0_1",
+          "score_archived_action": 0.2529591917991638,
+          "score_margin": 0.1975463628768921,
+          "score_recomputed": 0.4505055546760559
+        }
+      ],
+      "hard_mismatches": 0,
+      "loaded_checkpoint_sha256": "62d7a653d56cb10a20e12c93f0e33fa03636c138294ed2b1f031fabb114e044f",
+      "max_soft_margin": 0.1975463628768921,
+      "min_hard_margin": null,
+      "mismatch_rate": 0.0074,
+      "near_tie_atol": 0.0001,
+      "soft_mismatch_rate": 0.01,
+      "soft_near_tie_mismatches": 37
+    }
+  },
+  "validation": {
+    "gatv2": {
+      "largest_fragment_agreement": 0.5036,
+      "oracle_regret": 0.050825,
+      "top1_observed_success": 0.330625
+    },
+    "lightgbm_regressor": {
+      "largest_fragment_agreement": 0.5378,
+      "oracle_regret": 0.060425,
+      "top1_observed_success": 0.321025
+    },
+    "shallow_mlp": {
+      "largest_fragment_agreement": 0.525,
+      "oracle_regret": 0.057175,
+      "top1_observed_success": 0.324275
+    }
+  }
+}

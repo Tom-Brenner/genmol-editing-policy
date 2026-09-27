@@ -1,0 +1,7 @@
+split,model_a,model_b,same_action_fraction,n_parents
+validation,gatv2,lightgbm_regressor,0.8234,5000
+validation,gatv2,shallow_mlp,0.8244,5000
+validation,lightgbm_regressor,shallow_mlp,0.8256,5000
+test,gatv2,lightgbm_regressor,0.808,5000
+test,gatv2,shallow_mlp,0.8316,5000
+test,lightgbm_regressor,shallow_mlp,0.8348,5000

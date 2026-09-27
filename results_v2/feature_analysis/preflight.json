@@ -1,0 +1,147 @@
+{
+  "config": "/home/tom/genmol-editing-policy/configs/experiment_v2.yaml",
+  "files": {
+    "gat_checkpoint": {
+      "bytes": 282345,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/artifacts_v2/gatv2.pt"
+    },
+    "gat_validation_report": {
+      "bytes": 9392,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/artifacts_v2/gatv2_validation_report.json"
+    },
+    "lightgbm_model": {
+      "bytes": 2447626,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/artifacts_v2/lightgbm_regressor.txt"
+    },
+    "lightgbm_regressor_confirmation_metrics": {
+      "bytes": 1048,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/results_v2/ablation/lightgbm_regressor/confirmation_metrics.json"
+    },
+    "lightgbm_regressor_confirmation_selections": {
+      "bytes": 1939716,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/results_v2/ablation/lightgbm_regressor/confirmation_selections.json"
+    },
+    "lightgbm_regressor_test_metrics": {
+      "bytes": 1261,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/results_v2/ablation/lightgbm_regressor/test_metrics.json"
+    },
+    "lightgbm_regressor_test_selections": {
+      "bytes": 1779716,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/results_v2/ablation/lightgbm_regressor/test_selections.json"
+    },
+    "lightgbm_sidecar": {
+      "bytes": 19481,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/artifacts_v2/lightgbm_regressor.json"
+    },
+    "lightgbm_validation_report": {
+      "bytes": 2778,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/artifacts_v2/lightgbm_regressor_validation_report.json"
+    },
+    "phase3_metrics": {
+      "bytes": 529,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/results_v2/test/metrics.json"
+    },
+    "phase3_selections": {
+      "bytes": 4199034,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/results_v2/test/selections.json"
+    },
+    "phase4_metrics": {
+      "bytes": 356,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/results_v2/confirmation/metrics.json"
+    },
+    "seed_manifest": {
+      "bytes": 226,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/manifests_v2/seeds.json"
+    },
+    "shallow_mlp_checkpoint": {
+      "bytes": 110064,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/artifacts_v2/shallow_mlp.pt"
+    },
+    "shallow_mlp_confirmation_metrics": {
+      "bytes": 1024,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/results_v2/ablation/shallow_mlp/confirmation_metrics.json"
+    },
+    "shallow_mlp_confirmation_selections": {
+      "bytes": 1869870,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/results_v2/ablation/shallow_mlp/confirmation_selections.json"
+    },
+    "shallow_mlp_test_metrics": {
+      "bytes": 1230,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/results_v2/ablation/shallow_mlp/test_metrics.json"
+    },
+    "shallow_mlp_test_selections": {
+      "bytes": 1709870,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/results_v2/ablation/shallow_mlp/test_selections.json"
+    },
+    "shallow_mlp_validation_report": {
+      "bytes": 9581,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/artifacts_v2/shallow_mlp_validation_report.json"
+    },
+    "test_manifest": {
+      "bytes": 7557119,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/manifests_v2/test.jsonl"
+    },
+    "validation_action_labels": {
+      "bytes": 5117207,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/results_v2/labels/validation_action_rhat.jsonl"
+    },
+    "validation_manifest": {
+      "bytes": 7710787,
+      "exists": true,
+      "parse_check": "ok",
+      "path": "/home/tom/genmol-editing-policy/manifests_v2/validation.jsonl"
+    }
+  },
+  "modules": {
+    "lightgbm": "available",
+    "numpy": "available",
+    "rdkit": "available",
+    "torch": "available",
+    "torch_geometric": "available",
+    "yaml": "available"
+  },
+  "ok": true,
+  "problems": []
+}
