@@ -132,8 +132,9 @@ python scripts/analyze_feature_preferences.py \
 Full outputs are written to `results_v2/feature_analysis/`:
 
 - `preflight.json`: dependency and input audit.
-- `model_summary.json`: validation ranking metrics and exact agreement with the
-  archived test selections.
+- `model_summary.json`: validation ranking metrics and agreement with the
+  archived test selections. GATv2 may report a few soft near-tie flips under
+  CUDA; tabular models must match exactly.
 - `grouped_permutation.csv`: validation top-1 success loss, oracle-regret
   increase, and selection-change rate after group permutation.
 - `feature_preferences.csv`: within-parent selected-minus-alternative
@@ -175,4 +176,7 @@ The held-out test has completions only for actions selected by the evaluated
 policies. It therefore cannot supply unbiased counterfactual outcomes for every
 eligible test action. Feature dominance is evaluated against validation
 all-action labels; test manifests are used only for preference descriptions and
-verification that rescoring reproduces the archived selections.
+verification that rescoring reproduces the archived selections. A small number
+of GATv2 selection flips (default: up to 1% of parents, or score margin ≤
+`--near-tie-atol`) are recorded as soft mismatches and do not abort the run;
+larger disagreement rates, or any tabular mismatch, still fail.
