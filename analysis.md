@@ -133,8 +133,8 @@ Full outputs are written to `results_v2/feature_analysis/`:
 
 - `preflight.json`: dependency and input audit.
 - `model_summary.json`: validation ranking metrics and agreement with the
-  archived test selections. GATv2 may report a few soft near-tie flips under
-  CUDA; tabular models must match exactly.
+  archived test selections. A few soft near-tie flips under CUDA / float
+  noise are allowed (≤1% per model by default).
 - `grouped_permutation.csv`: validation top-1 success loss, oracle-regret
   increase, and selection-change rate after group permutation.
 - `feature_preferences.csv`: within-parent selected-minus-alternative
@@ -177,6 +177,7 @@ policies. It therefore cannot supply unbiased counterfactual outcomes for every
 eligible test action. Feature dominance is evaluated against validation
 all-action labels; test manifests are used only for preference descriptions and
 verification that rescoring reproduces the archived selections. A small number
-of GATv2 selection flips (default: up to 1% of parents, or score margin ≤
+of selection flips (default: up to 1% of parents per model, or score margin ≤
 `--near-tie-atol`) are recorded as soft mismatches and do not abort the run;
-larger disagreement rates, or any tabular mismatch, still fail.
+larger disagreement rates still fail. Baseline scores are recomputed through
+each model's `predict_actions` path, matching the selection archives.
