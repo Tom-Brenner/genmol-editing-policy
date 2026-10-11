@@ -1,6 +1,4 @@
-"""Gradio entrypoint for a LightGBM-only ZeroGPU Space.
-
-ZeroGPU is required for free-tier Gradio hosting even though this model runs on CPU.
+"""Gradio entrypoint for a LightGBM-only ZeroGPU Space; runs on CPU :).
 """
 
 from __future__ import annotations
@@ -27,7 +25,6 @@ if spaces is not None:
 
 
 EXAMPLE_SMILES = [
-    "COc1ccc(CC(=O)N2CCN(c3ccccc3)CC2)cc1",
     "CC(C)Cc1ccc(C(C)C(=O)O)cc1",
 ]
 
@@ -43,11 +40,11 @@ demo = gr.Interface(
         gr.Textbox(label="Cut site", lines=16),
         gr.Code(label="JSON", language="json"),
     ],
-    title="GenMol edit-site policy (LightGBM)",
+    title="Editing-site selection for constrained QED improvement through frozen GenMol remasking",
     description=(
-        "Scores eligible Murcko-pendant cut sites with the frozen LightGBM "
-        "regressor and returns the learned top-1 action. RDKit enumeration only "
-        "(no SAFE/GenMol generation)."
+        "Scores eligible Murcko-pendant cut sites with a trained LightGBM "
+        "regressor and returns the learned top-1 action."
+        " Selection shown to maximize probability of QED increase through GenMol remasking, see preprint TBA"
     ),
     examples=EXAMPLE_SMILES,
     allow_flagging="never",
