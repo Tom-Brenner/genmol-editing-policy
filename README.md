@@ -1,10 +1,11 @@
 # Editing-site selection for frozen GenMol remasking
 
 This repository evaluates policies that select one eligible peripheral fragment
-to remask with frozen GenMol V1. The selected edit must preserve the
-Bemis–Murcko core and satisfy similarity, size, validity, and QED-improvement
-constraints. The learned LightGBM policy is compared with random and
-largest-fragment baselines on a core-disjoint ChEMBL holdout.
+to remask with frozen [GenMol](https://github.com/NVIDIA/GenMol) V1
+(Lee et al., ICML 2025). The selected edit must preserve the Bemis–Murcko core
+and satisfy similarity, size, validity, and QED-improvement constraints. The
+learned LightGBM policy is compared with random and largest-fragment baselines
+on a core-disjoint ChEMBL holdout.
 
 - [Preprint](https://chemrxiv.org/doi/full/10.26434/chemrxiv.15010340/v2)
 - [Interactive Hugging Face demo](https://huggingface.co/spaces/one-more-beauty/genmol-edit-site-policy)
@@ -91,3 +92,24 @@ tests/               unit and integration tests
 vendor/genmol/       pinned GenMol source; checkpoints are excluded
 artifacts_v2/        compact model and run summaries only
 ```
+
+## References
+
+GenMol is the frozen remasking generator used throughout this study. Vendored
+source lives under `vendor/genmol/`; weights are the NVIDIA GenMol V1
+checkpoint on Hugging Face.
+
+```bibtex
+@article{lee2025genmol,
+  title     = {GenMol: A Drug Discovery Generalist with Discrete Diffusion},
+  author    = {Lee, Seul and Kreis, Karsten and Veccham, Srimukh Prasad and Liu, Meng and Reidenbach, Danny and Peng, Yuxing and Paliwal, Saee and Nie, Weili and Vahdat, Arash},
+  journal   = {International Conference on Machine Learning},
+  year      = {2025}
+}
+```
+
+- GenMol paper: Lee et al., ICML 2025 (citation above)
+- GenMol code: [NVIDIA/GenMol](https://github.com/NVIDIA/GenMol)
+- GenMol V1 weights: [nvidia/NV-GenMol-89M-v1](https://huggingface.co/nvidia/NV-GenMol-89M-v1)
+- This work (preprint): [ChemRxiv](https://chemrxiv.org/doi/full/10.26434/chemrxiv.15010340/v2)
+- Interactive demo: [Hugging Face Space](https://huggingface.co/spaces/one-more-beauty/genmol-edit-site-policy)
