@@ -1,0 +1,70 @@
+{
+  "command": [
+    "scripts/audit_exact_cores.py",
+    "--config",
+    "configs/experiment_v2.yaml",
+    "--workers",
+    "4"
+  ],
+  "expected_parents": {
+    "test": 5000,
+    "train": 30000,
+    "validation": 5000
+  },
+  "manifest_sha256": {
+    "test": "a37668ac2cec0508ff8aa8c1b8041679fc1fbff8998e78d32c890b0ec8dde774",
+    "train": "eb861381326d138f4304087cbf21b1eb99e85b0c3ae4bd9132a84df39ec10f66",
+    "validation": "519dad5c5f619416a1195891f8d504c1f368e750e561db4c8a6a8aa6c971bf72"
+  },
+  "overlaps": {
+    "train_test_cores": [],
+    "train_test_parents": [],
+    "train_validation_cores": [],
+    "train_validation_parents": [],
+    "validation_test_cores": [],
+    "validation_test_parents": []
+  },
+  "parent_count_mismatches": {},
+  "passed": true,
+  "python": "3.10.21",
+  "rdkit": "2026.03.6",
+  "splits": {
+    "test": {
+      "counts": {
+        "parents": 5000,
+        "unique_protected_core": 5000,
+        "valid_actions": 12063
+      },
+      "failure_count": 0,
+      "failure_samples": [],
+      "n_core_ids": 1667,
+      "n_parents": 5000,
+      "split": "test"
+    },
+    "train": {
+      "counts": {
+        "parents": 30000,
+        "unique_protected_core": 30000,
+        "valid_actions": 73118
+      },
+      "failure_count": 0,
+      "failure_samples": [],
+      "n_core_ids": 9896,
+      "n_parents": 30000,
+      "split": "train"
+    },
+    "validation": {
+      "counts": {
+        "parents": 5000,
+        "unique_protected_core": 5000,
+        "valid_actions": 12313
+      },
+      "failure_count": 0,
+      "failure_samples": [],
+      "n_core_ids": 1908,
+      "n_parents": 5000,
+      "split": "validation"
+    }
+  },
+  "started_at": "2026-09-22T06:24:10.417115+00:00"
+}

@@ -42,9 +42,13 @@ demo = gr.Interface(
     ],
     title="Editing-site selection for constrained QED improvement through frozen GenMol remasking",
     description=(
-        "Scores eligible Murcko-pendant cut sites with a trained LightGBM "
+        "Identifies a Bemis–Murcko core and scores eligible cut sites (pendants) with a trained LightGBM "
         "regressor and returns the learned top-1 action."
-        " Selection shown to maximize probability of QED increase through GenMol remasking, see preprint TBA"
+        " Selection maximizes the predicted probability of QED improvement through GenMol remasking. "
+        'See the <a href="https://chemrxiv.org/doi/full/10.26434/chemrxiv.15010340/v2" '
+        'target="_blank" rel="noopener noreferrer">preprint</a> and the '
+        '<a href="https://github.com/Tom-Brenner/genmol-editing-policy" '
+        'target="_blank" rel="noopener noreferrer">source repository</a>.'
     ),
     examples=EXAMPLE_SMILES,
     allow_flagging="never",

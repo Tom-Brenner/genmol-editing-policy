@@ -1,9 +1,0 @@
-{
-  "bootstrap_seed": 20260925,
-  "confirmation_base_seed": 20260923,
-  "label_base_seed": 20260921,
-  "manifest_seed": 20260919,
-  "probe_base_seed": 20260924,
-  "random_policy_seed": 20260920,
-  "test_base_seed": 20260922
-}

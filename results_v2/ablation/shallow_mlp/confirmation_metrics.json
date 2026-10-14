@@ -1,0 +1,30 @@
+{
+  "actions_sent_to_genmol": 389,
+  "base_seed": 20261005,
+  "baselines_left_in_place": [
+    "/home/tom/genmol-editing-policy/results_v2/confirmation/largest_fragment.jsonl",
+    "/home/tom/genmol-editing-policy/results_v2/confirmation/learned.jsonl"
+  ],
+  "checkpoint_sha256": "62d7a653d56cb10a20e12c93f0e33fa03636c138294ed2b1f031fabb114e044f",
+  "contrasts": {
+    "shallow_mlp_minus_largest_fragment": {
+      "bootstrap_seed": 20261008,
+      "ci95_high": 0.1256,
+      "ci95_low": 0.1014,
+      "mean": 0.1136,
+      "n_boot": 10000
+    }
+  },
+  "copied_completions": 73776,
+  "model_type": "shallow_mlp",
+  "n_parents": 5000,
+  "note": "Ablation against stored Phase 3/4 baselines. Not a replacement for the GATv2 test.",
+  "output": "/home/tom/genmol-editing-policy/results_v2/ablation/shallow_mlp/confirmation.jsonl",
+  "phase": "confirmation:confirmation-v1",
+  "rollouts_per_selected_action": 16,
+  "schedule": "confirmation",
+  "success_rate": {
+    "largest_fragment": 0.5556,
+    "shallow_mlp": 0.6692
+  }
+}

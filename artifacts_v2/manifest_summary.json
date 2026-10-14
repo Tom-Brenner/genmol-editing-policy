@@ -1,0 +1,11 @@
+{
+  "counts": {
+    "test": 5000,
+    "train": 30000,
+    "validation": 5000
+  },
+  "eligible_pool": 42601,
+  "offline_no_safe": false,
+  "scanned": 120000,
+  "seed": 20261001
+}

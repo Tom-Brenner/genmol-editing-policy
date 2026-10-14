@@ -1,0 +1,168 @@
+{
+  "caps": [
+    {
+      "actions_discarded_by_cap": 372,
+      "cap": 4,
+      "core_disjoint_packing": {
+        "counts": {
+          "test": 5000,
+          "train": 30000,
+          "validation": 5000
+        },
+        "ok": true
+      },
+      "expected_train_val_label_completions_if_mean_holds": 682388,
+      "fraction_actions_discarded": 0.003801504251144539,
+      "max_retained": 4,
+      "mean_retained": 2.4371,
+      "median_retained": 2,
+      "n_cores": 13789,
+      "n_eligible_parents": 40000,
+      "p90_retained": 3,
+      "p95_retained": 4
+    },
+    {
+      "actions_discarded_by_cap": 0,
+      "cap": 6,
+      "core_disjoint_packing": {
+        "counts": {
+          "test": 5000,
+          "train": 30000,
+          "validation": 5000
+        },
+        "ok": true
+      },
+      "expected_train_val_label_completions_if_mean_holds": 684992,
+      "fraction_actions_discarded": 0.0,
+      "max_retained": 6,
+      "mean_retained": 2.4464,
+      "median_retained": 2,
+      "n_cores": 13789,
+      "n_eligible_parents": 40000,
+      "p90_retained": 3,
+      "p95_retained": 4
+    },
+    {
+      "actions_discarded_by_cap": 0,
+      "cap": 8,
+      "core_disjoint_packing": {
+        "counts": {
+          "test": 5000,
+          "train": 30000,
+          "validation": 5000
+        },
+        "ok": true
+      },
+      "expected_train_val_label_completions_if_mean_holds": 684992,
+      "fraction_actions_discarded": 0.0,
+      "max_retained": 6,
+      "mean_retained": 2.4464,
+      "median_retained": 2,
+      "n_cores": 13789,
+      "n_eligible_parents": 40000,
+      "p90_retained": 3,
+      "p95_retained": 4
+    },
+    {
+      "actions_discarded_by_cap": 0,
+      "cap": "unlimited",
+      "core_disjoint_packing": {
+        "counts": {
+          "test": 5000,
+          "train": 30000,
+          "validation": 5000
+        },
+        "ok": true
+      },
+      "expected_train_val_label_completions_if_mean_holds": 684992,
+      "fraction_actions_discarded": 0.0,
+      "max_retained": 6,
+      "mean_retained": 2.4464,
+      "median_retained": 2,
+      "n_cores": 13789,
+      "n_eligible_parents": 40000,
+      "p90_retained": 3,
+      "p95_retained": 4
+    }
+  ],
+  "eligible_limit": 40000,
+  "example_ids": {
+    "ambiguous_element_multiset": [
+      "CHEMBL153534",
+      "CHEMBL153534",
+      "CHEMBL503634",
+      "CHEMBL503634",
+      "CHEMBL503634"
+    ],
+    "missing_safe_fragment": [
+      "CHEMBL69519"
+    ],
+    "roundtrip_failed:ValueError": [
+      "CHEMBL4435170",
+      "CHEMBL36325",
+      "CHEMBL45507",
+      "CHEMBL3314043",
+      "CHEMBL3314043"
+    ]
+  },
+  "fraction_eq_4": 0.067675,
+  "fraction_gt_4": 0.008725,
+  "fraction_lt_4": 0.9236,
+  "n_verified_ge_2": 40000,
+  "offline_no_safe": false,
+  "parents_path": "/home/tom/genmol-editing-policy/artifacts_v2/eligible_parents.jsonl",
+  "reason_counts": {
+    "ambiguous_element_multiset": 68981,
+    "missing_safe_fragment": 1,
+    "roundtrip_failed:ValueError": 5
+  },
+  "scan_capped": true,
+  "scanned": 112554,
+  "source_sha256": "ea6181ce8dc7af41974e35b92e1febb0c9dcbe2c62f7ccc4a5d983ac19f696e7",
+  "stage_counts": {
+    "n_aligned:0": 9955,
+    "n_aligned:1": 26406,
+    "n_aligned:2": 25569,
+    "n_aligned:3": 11374,
+    "n_aligned:4": 2708,
+    "n_aligned:5": 326,
+    "n_aligned:6": 23,
+    "n_rdkit:0": 3541,
+    "n_rdkit:1": 15589,
+    "n_rdkit:10": 38,
+    "n_rdkit:11": 11,
+    "n_rdkit:13": 1,
+    "n_rdkit:14": 2,
+    "n_rdkit:15": 1,
+    "n_rdkit:2": 22454,
+    "n_rdkit:3": 17395,
+    "n_rdkit:4": 10343,
+    "n_rdkit:5": 4452,
+    "n_rdkit:6": 1737,
+    "n_rdkit:7": 506,
+    "n_rdkit:8": 206,
+    "n_rdkit:9": 85,
+    "n_verified:0": 9956,
+    "n_verified:1": 26405,
+    "n_verified:2": 25572,
+    "n_verified:3": 11372,
+    "n_verified:4": 2707,
+    "n_verified:5": 326,
+    "n_verified:6": 23,
+    "standardization_rejected": 36193
+  },
+  "stop_reason": "eligible_limit",
+  "verified_histogram": {
+    "0": 9956,
+    "1": 26405,
+    "2": 25572,
+    "3": 11372,
+    "4": 2707,
+    "5": 326,
+    "6": 23
+  },
+  "versions": {
+    "python": "3.10.21",
+    "rdkit": "2026.03.6"
+  }
+}

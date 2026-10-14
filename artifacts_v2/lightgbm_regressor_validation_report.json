@@ -1,0 +1,106 @@
+{
+  "best": {
+    "best_iteration": 796,
+    "binomial_nll": 0.36505868206499276,
+    "brier": 0.05835957386863707,
+    "calibration_bins": [
+      {
+        "hi": 0.1,
+        "lo": 0.0,
+        "mean_observed": 0.024625320449615462,
+        "mean_predicted": 0.030213578830587492,
+        "n": 5071
+      },
+      {
+        "hi": 0.2,
+        "lo": 0.1,
+        "mean_observed": 0.1221816976127321,
+        "mean_predicted": 0.14800801899362293,
+        "n": 2262
+      },
+      {
+        "hi": 0.30000000000000004,
+        "lo": 0.2,
+        "mean_observed": 0.2574236425339366,
+        "mean_predicted": 0.24586707725042764,
+        "n": 1768
+      },
+      {
+        "hi": 0.4,
+        "lo": 0.30000000000000004,
+        "mean_observed": 0.3894661776691117,
+        "mean_predicted": 0.3475288349598616,
+        "n": 1227
+      },
+      {
+        "hi": 0.5,
+        "lo": 0.4,
+        "mean_observed": 0.45646916565900847,
+        "mean_predicted": 0.44429295137942043,
+        "n": 827
+      },
+      {
+        "hi": 0.6000000000000001,
+        "lo": 0.5,
+        "mean_observed": 0.5848501070663812,
+        "mean_predicted": 0.5470185652349974,
+        "n": 467
+      },
+      {
+        "hi": 0.7000000000000001,
+        "lo": 0.6000000000000001,
+        "mean_observed": 0.6609327217125383,
+        "mean_predicted": 0.6465307463460837,
+        "n": 327
+      },
+      {
+        "hi": 0.8,
+        "lo": 0.7000000000000001,
+        "mean_observed": 0.802734375,
+        "mean_predicted": 0.7446369518373117,
+        "n": 256
+      },
+      {
+        "hi": 0.9,
+        "lo": 0.8,
+        "mean_observed": 0.8449367088607594,
+        "mean_predicted": 0.8398017784228331,
+        "n": 79
+      },
+      {
+        "hi": 1.0,
+        "lo": 0.9,
+        "mean_observed": 0.9482758620689655,
+        "mean_predicted": 0.942281853031347,
+        "n": 29
+      }
+    ],
+    "inference_seconds": 0.1701131509980769,
+    "inference_seconds_per_action": 1.3815735482666847e-05,
+    "largest_fragment_agreement": 0.5378,
+    "success_by_n_actions": {
+      "2": {
+        "n_parents": 3122,
+        "success_rate": 0.2875560538116592
+      },
+      "3": {
+        "n_parents": 1443,
+        "success_rate": 0.3646049896049896
+      },
+      "4": {
+        "n_parents": 435,
+        "success_rate": 0.4163793103448276
+      }
+    },
+    "val_l2": 0.058418450526185314,
+    "validation_top1_success_rate": 0.321
+  },
+  "checkpoint": "/home/tom/genmol-editing-policy/artifacts_v2/lightgbm_regressor.txt",
+  "early_stopping_metric": "valid_0_l2",
+  "model_seed": 20261001,
+  "model_type": "lightgbm_regressor",
+  "n_train_actions": 73118,
+  "n_val_actions": 12313,
+  "opened_test_manifest": false,
+  "sidecar": "/home/tom/genmol-editing-policy/artifacts_v2/lightgbm_regressor.json"
+}

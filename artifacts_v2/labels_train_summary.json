@@ -1,0 +1,9 @@
+{
+  "label_schema_version": 2,
+  "mean_p_success_observed": 0.19637948248037418,
+  "mean_rhat": 0.2063603673691138,
+  "n_actions": 73118,
+  "n_records": 584944,
+  "n_successes": 114871,
+  "split": "train"
+}

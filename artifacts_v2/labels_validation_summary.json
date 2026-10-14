@@ -1,0 +1,9 @@
+{
+  "label_schema_version": 2,
+  "mean_p_success_observed": 0.20309835133598636,
+  "mean_rhat": 0.21391753389308518,
+  "n_actions": 12313,
+  "n_records": 98504,
+  "n_successes": 20006,
+  "split": "validation"
+}

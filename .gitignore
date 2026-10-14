@@ -59,3 +59,31 @@ artifacts/one_molecule_local_test.json
 artifacts/throughput_report*.json
 artifacts/genmol-v1.sha256
 artifacts/genmol-v1.sha256.json
+
+# V2 experiment outputs are large and reproducible from the public code/data.
+# Small, explicitly force-added model and summary files are the only exceptions.
+artifacts_v2/**
+manifests_v2/**
+results_v2/**
+
+# Historical/private working notes and paper-preparation material.
+GCP_SETUP.md
+HF_instructions.md
+RUNBOOK.md
+abstract.md
+additional_analysis_details.md
+additional_refs.md
+analysis.md
+experiment-v2-handoff.md
+feature_analysis.md
+gat-handoff.md
+implementation.md
+paper-skeleton.md
+plan.md
+manuscript.pdf
+docs/
+
+# Superseded experiment namespaces remain local only.
+artifacts/
+manifests/
+results/

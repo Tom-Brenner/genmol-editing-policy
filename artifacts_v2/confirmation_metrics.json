@@ -1,0 +1,15 @@
+{
+  "note": "Seed-sensitivity confirmation, not an independent test set.",
+  "primary_learned_minus_largest": {
+    "bootstrap_seed": 20261008,
+    "ci95_high": 0.1238,
+    "ci95_low": 0.0992,
+    "mean": 0.1116,
+    "n_boot": 10000
+  },
+  "seed_schedule": "confirmation-v1",
+  "success_rate": {
+    "largest_fragment": 0.5556,
+    "learned": 0.6672
+  }
+}

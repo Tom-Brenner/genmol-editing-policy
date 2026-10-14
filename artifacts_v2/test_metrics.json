@@ -1,0 +1,23 @@
+{
+  "candidate_validity": {
+    "largest_fragment": 0.9895875,
+    "learned": 0.9859375,
+    "learned_minus_largest_pp": -0.3649999999999931,
+    "random": 0.9860125
+  },
+  "n_parents": 5000,
+  "primary_learned_minus_largest": {
+    "bootstrap_seed": 20261007,
+    "ci95_high": 0.1274,
+    "ci95_low": 0.102595,
+    "mean": 0.115,
+    "n_boot": 10000
+  },
+  "rollouts_per_selected_action": 16,
+  "success_criterion_met": true,
+  "success_rate": {
+    "largest_fragment": 0.5484,
+    "learned": 0.6634,
+    "random": 0.4732
+  }
+}

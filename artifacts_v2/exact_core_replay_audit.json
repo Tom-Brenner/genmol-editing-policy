@@ -1,0 +1,54 @@
+{
+  "benchmark_seconds": null,
+  "command": [
+    "scripts/audit_exact_cores.py",
+    "--config",
+    "configs/experiment_v2.yaml",
+    "--workers",
+    "4"
+  ],
+  "elapsed_seconds": 254.4933310100023,
+  "ended_at": "2026-09-22T06:28:24.910403+00:00",
+  "expected_records": {
+    "train": 584944,
+    "validation": 98504
+  },
+  "expected_total": 683448,
+  "label_sha256": {
+    "train": "6398f36392851ce87b8eea6888436a51ce524cf7f87fcef42469ba8eac615d3f",
+    "validation": "29d50e66cf9d910f6062d0b5c536199dacf2a24936a3baa2c38ded43021fd669"
+  },
+  "manifest_sha256": {
+    "test": "a37668ac2cec0508ff8aa8c1b8041679fc1fbff8998e78d32c890b0ec8dde774",
+    "train": "eb861381326d138f4304087cbf21b1eb99e85b0c3ae4bd9132a84df39ec10f66",
+    "validation": "519dad5c5f619416a1195891f8d504c1f368e750e561db4c8a6a8aa6c971bf72"
+  },
+  "max_records": null,
+  "observed_total": 683448,
+  "passed": true,
+  "phase_a_passed": true,
+  "phase_b_passed": true,
+  "production": true,
+  "python": "3.10.21",
+  "rdkit": "2026.03.6",
+  "splits": {
+    "train": {
+      "counts": {
+        "recomputed_exact_core_true": 563873,
+        "records": 584944,
+        "stored_exact_core_true": 563866
+      },
+      "n_mismatch_samples": 9
+    },
+    "validation": {
+      "counts": {
+        "recomputed_exact_core_true": 94995,
+        "records": 98504,
+        "stored_exact_core_true": 94996
+      },
+      "n_mismatch_samples": 1
+    }
+  },
+  "started_at": "2026-09-22T06:24:10.417115+00:00",
+  "workers": 4
+}
